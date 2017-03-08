@@ -1,0 +1,23 @@
+{
+  "name": "deoxy",
+  "version": "1.0.0",
+  "description": "Automagical mixer software.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aehmlo/deoxy.git"
+  },
+  "author": "Alex Hamilton <alex.hamilton@ou.edu>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aehmlo/deoxy/issues"
+  },
+  "homepage": "https://github.com/aehmlo/deoxy#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0"
+  }
+}
