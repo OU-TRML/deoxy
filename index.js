@@ -1,0 +1,48 @@
+const express = require('express')
+
+const fs = require('fs')
+const path = require('path')
+
+const setUpEmptyApp = (app, callback) => {
+	return app
+	// TODO: Show page detailing the routes that the app failed to load or something
+}
+
+const configureApp = (app, callback) => {
+
+	let routerDirectory = path.join(__dirname, 'routes')
+
+	return fs.readdir(routerDirectory, (err, files) => {
+		if(err) { throw err }
+		if(!files.length) {
+			return setUpEmptyApp(app)
+		}
+		let failedRouters = []
+		for(let i = 0; i < files.length; i++) {
+			try {
+				let router = require(path.join(routerDirectory, files[i]))
+				// TODO: Verify that this is a valid Express router
+				app.use(router)
+			} catch (e) {
+				let name = files[i]
+				failedRouters.push(name)
+				let error = new Error(`Failed to load router at routes/${name}.`)
+				error.err = e
+				error.error = e
+				return callback(error)
+			}
+		}
+		app.locals.failedRouters = failedRouters
+		return app
+	})
+}
+
+module.exports = () => {
+	let a = express()
+	configureApp(a, (err, app) => {
+		if(err) {
+			return console.error(err) // TODO: Handle this better
+		}
+	})
+	return a
+}
