@@ -17,6 +17,7 @@ const configureApp = (app, callback) => {
 		if(!files.length) {
 			return setUpEmptyApp(app)
 		}
+		let errors = []
 		let failedRouters = []
 		for(let i = 0; i < files.length; i++) {
 			try {
@@ -29,11 +30,11 @@ const configureApp = (app, callback) => {
 				let error = new Error(`Failed to load router at routes/${name}.`)
 				error.err = e
 				error.error = e
-				return callback(error)
+				errors.push(error)
 			}
 		}
 		app.locals.failedRouters = failedRouters
-		return app
+		return callback(errors.length ? errors[0] : null, app) // TODO: Return array of errors?
 	})
 }
 
