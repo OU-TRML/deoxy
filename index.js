@@ -3,11 +3,6 @@ const express = require('express')
 const fs = require('fs')
 const path = require('path')
 
-const setUpEmptyApp = (app, callback) => {
-	return app
-	// TODO: Show page detailing the routes that the app failed to load or something
-}
-
 const configureApp = (app, callback) => {
 
 	let routerDirectory = path.join(__dirname, 'routes')
@@ -15,7 +10,7 @@ const configureApp = (app, callback) => {
 	return fs.readdir(routerDirectory, (err, files) => {
 		if(err) { throw err }
 		if(!files.length) {
-			return setUpEmptyApp(app)
+			return callback(null, app)
 		}
 		let errors = []
 		let failedRouters = []
