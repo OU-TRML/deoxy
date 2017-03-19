@@ -1,0 +1,16 @@
+mixin light(number)
+	label
+		- var label = "L" + number
+		input(type="checkbox", name=label, value="false")
+		|LED #{number}
+		br
+doctype html
+html(lang="en")
+	head
+		title Light 'em Up
+	body
+		form(action="/", method="post")
+			- var i = 0
+			while i < 3
+				+light(++i)
+			input(type="submit")
