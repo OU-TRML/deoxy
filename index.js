@@ -9,6 +9,8 @@ const configureApp = (app, callback) => {
 
 	app.use(bodyParser.urlencoded())
 	app.use(bodyParser.json())
+	app.set('view engine', 'pug')
+
 	let routerDirectory = path.join(__dirname, 'routes')
 
 	return fs.readdir(routerDirectory, (err, files) => {
