@@ -3,8 +3,12 @@ const express = require('express')
 const fs = require('fs')
 const path = require('path')
 
+const bodyParser = require('body-parser')
+
 const configureApp = (app, callback) => {
 
+	app.use(bodyParser.urlencoded())
+	app.use(bodyParser.json())
 	let routerDirectory = path.join(__dirname, 'routes')
 
 	return fs.readdir(routerDirectory, (err, files) => {
