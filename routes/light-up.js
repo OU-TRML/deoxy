@@ -8,7 +8,6 @@ router.get('/', (req, res) => {
 })
 
 router.post('/', (req, res) => {
-	console.dir(req.body)
 	let states = [!!req.body.L1, !!req.body.L2, !!req.body.L3]
 	let pins = [22, 27, 17]
 	console.log(`Applying states (${states}) to pins (${pins}).`)
