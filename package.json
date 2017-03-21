@@ -24,7 +24,7 @@
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
     "node-schedule": "^1.2.1",
-    "pi-gpio": "0.0.8",
-    "pug": "^2.0.0-beta11"
+    "pug": "^2.0.0-beta11",
+    "rpio": "^0.9.16"
   }
 }
