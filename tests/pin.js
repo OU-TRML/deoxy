@@ -10,9 +10,4 @@ describe('pin', () => {
 			done()
 		})
 	})
-	it('should export HIGH and LOW constants (equal to 1 and 0, respectively)', (done) => {
-		pin.HIGH.should.equal(1)
-		pin.LOW.should.equal(0)
-		done()
-	})
 })
