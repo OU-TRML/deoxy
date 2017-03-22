@@ -16,7 +16,7 @@ router.post('/', (req, res) => {
 	if(duration) {
 		for(let i = 0; i < pins.length; i++) {
 			if(states[i]) {
-				Pin.setHighFor(pin, duration)
+				Pin.setHighFor(pins[i], duration)
 			}
 		}
 	} else {
