@@ -2,6 +2,8 @@
 
 const rpio = require('rpio')
 
+var lightShowIsRunning = false
+
 const pins = [11, 13, 15, 16, 18]
 const HIGH = rpio.HIGH
 const LOW = rpio.LOW
@@ -9,13 +11,9 @@ const LOW = rpio.LOW
 const write = rpio.write
 
 const writeAllPins = (mode) => {
-	for(let i = 0, let pin; i < pins.length, pin = pins[i]; i++) {
+	for(let i = 0,  pin; i < pins.length, pin = pins[i]; i++) {
 		write(pin, mode)
 	}
-}
-
-for(let i = 0, let pin; i < pins.length, pin = pins[i]; i++) {
-	rpio.open(pin, rpio.OUTPUT)
 }
 
 const doMegaPWM = (pulseWidth, frequency, duration) => { // pulseWidth and duration in ms, frequency in Hz
@@ -33,86 +31,106 @@ const doMegaPWM = (pulseWidth, frequency, duration) => { // pulseWidth and durat
 	}
 }
 
-let first = pins[0]
+const sleep = () => rpio.msleep(500)
 
-// Light up everything
+const doTheThing = () => {
 
-writeAllPins(HIGH)
-rpio.sleep(1)
-writeAllPins(LOW)
+	for(let i = 0, pin; i < pins.length, pin = pins[i]; i++) {
+		rpio.open(pin, rpio.OUTPUT)
+	}
 
-let sleep = () => rpio.msleep(500)
+	// Light up everything
 
-// Ascend the pins
+	writeAllPins(HIGH)
+	rpio.sleep(1)
+	writeAllPins(LOW)
 
-write(pins[0], HIGH)
-sleep()
-write(pins[0], LOW)
-write(pins[1], HIGH)
-sleep()
-write(pins[1], LOW)
-write(pins[2], HIGH)
-sleep()
-write(pins[2], LOW)
-write(pins[3], HIGH)
-sleep()
-write(pins[3], LOW)
-write(pins[4], HIGH)
-sleep()
-write(pins[4], LOW)
+	// Ascend the pins
 
-// Descend the pins
+	write(pins[0], HIGH)
+	sleep()
+	write(pins[0], LOW)
+	write(pins[1], HIGH)
+	sleep()
+	write(pins[1], LOW)
+	write(pins[2], HIGH)
+	sleep()
+	write(pins[2], LOW)
+	write(pins[3], HIGH)
+	sleep()
+	write(pins[3], LOW)
+	write(pins[4], HIGH)
+	sleep()
+	write(pins[4], LOW)
 
-write(pins[3], HIGH)
-sleep()
-write(pins[3], LOW)
-write(pins[2], HIGH)
-sleep()
-write(pins[2], LOW)
-write(pins[1], HIGH)
-sleep()
-write(pins[1], LOW)
-write(pins[0], HIGH)
-sleep()
-write(pins[0], LOW)
+	// Descend the pins
 
-// Walk in to the center
+	write(pins[3], HIGH)
+	sleep()
+	write(pins[3], LOW)
+	write(pins[2], HIGH)
+	sleep()
+	write(pins[2], LOW)
+	write(pins[1], HIGH)
+	sleep()
+	write(pins[1], LOW)
+	write(pins[0], HIGH)
+	sleep()
+	write(pins[0], LOW)
 
-write(pins[0], HIGH)
-write(pins[4], HIGH)
-sleep()
-write(pins[0], LOW)
-write(pins[4], LOW)
-write(pins[1], HIGH)
-write(pins[3], HIGH)
-sleep()
-write(pins[1], LOW)
-write(pins[3], LOW)
-write(pins[2], HIGH)
-sleep()
+	// Walk in to the center
 
-// Walk back out
+	write(pins[0], HIGH)
+	write(pins[4], HIGH)
+	sleep()
+	write(pins[0], LOW)
+	write(pins[4], LOW)
+	write(pins[1], HIGH)
+	write(pins[3], HIGH)
+	sleep()
+	write(pins[1], LOW)
+	write(pins[3], LOW)
+	write(pins[2], HIGH)
+	sleep()
 
-write(pins[2], LOW)
-sleep()
-write(pins[1], HIGH)
-write(pins[3], HIGH)
-sleep()
-write(pins[1], LOW)
-write(pins[3], LOW)
-write(pins[0], HIGH)
-write(pins[4], HIGH)
-sleep()
-write(pins[0], LOW)
-write(pins[4], LOW)
+	// Walk back out
 
-// Mega PWM
+	write(pins[2], LOW)
+	sleep()
+	write(pins[1], HIGH)
+	write(pins[3], HIGH)
+	sleep()
+	write(pins[1], LOW)
+	write(pins[3], LOW)
+	write(pins[0], HIGH)
+	write(pins[4], HIGH)
+	sleep()
+	write(pins[0], LOW)
+	write(pins[4], LOW)
 
-doMegaPWM(100, 5, 2000)
-doMegaPWM(100, 2, 3000)
-doMegaPWM(50, 5, 2000)
-doMegaPWM(1000, 1, 5)
+	// Mega PWM
 
-for(let i = 0, let pin; i < pins.length, pin = pins[i]; i++) {
-	rpio.close(pin)
+	doMegaPWM(100, 5, 2000)
+	doMegaPWM(100, 2, 3000)
+	doMegaPWM(50, 5, 2000)
+	doMegaPWM(1000, 1, 5)
+
+	for(let i = 0, pin; i < pins.length, pin = pins[i]; i++) {
+		rpio.close(pin)
+	}
 }
+
+const inputPin = 7
+
+rpio.open(inputPin, rpio.INPUT, rpio.PULL_DOWN)
+rpio.poll(inputPin, (pin) => {
+	if(rpio.read(pin)) {
+		if(!lightShowIsRunning) {
+			lightShowIsRunning = true
+			doTheThing()
+			setTimeout(() => {
+				lightShowIsRunning = false
+			}, 5000)
+		}
+	}
+})
