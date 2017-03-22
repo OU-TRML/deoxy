@@ -13,9 +13,16 @@ router.post('/', (req, res) => {
 	let pins = [11, 13, 15]
 	console.log(`Applying states (${states}) to pins (${pins})${duration ? (" for duration " + duration + " ms") : ""}.`)
 	let Pin = require('../lib/pin')
-	let f = duration ? Pin.setHighFor.bind(null) : Pin.write.bind(null)
-	for(let i = 0; i < pins.length; i++) {
-		f(pins[i], (duration || states[i]))
+	if(duration) {
+		for(let i = 0; i < pins.length; i++) {
+			if(states[i]) {
+				Pin.setHighFor(pin, duration)
+			}
+		}
+	} else {
+		for(let i = 0; i < pins.length; i++) {
+			Pin.write(pins[i], states[i])
+		}
 	}
 	res.redirect('/')
 })
