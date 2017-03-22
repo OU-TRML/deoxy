@@ -1,0 +1,118 @@
+#!/usr/bin/env node
+
+const rpio = require('rpio')
+
+const pins = [11, 13, 15, 16, 18]
+const HIGH = rpio.HIGH
+const LOW = rpio.LOW
+
+const write = rpio.write
+
+const writeAllPins = (mode) => {
+	for(let i = 0, let pin; i < pins.length, pin = pins[i]; i++) {
+		write(pin, mode)
+	}
+}
+
+for(let i = 0, let pin; i < pins.length, pin = pins[i]; i++) {
+	rpio.open(pin, rpio.OUTPUT)
+}
+
+const doMegaPWM = (pulseWidth, frequency, duration) => { // pulseWidth and duration in ms, frequency in Hz
+	let cycles = Math.ceil(frequency * duration / 1000)
+	duration = cycles / frequency * 1000
+	let antiPulseWidth = (duration - cycles * pulseWidth) / cycles // Premature optimization is the root of all evil.
+	if(antiPulseWidth <= 0) {
+		throw new Error(`Using pulse width of ${pulseWidth} ms and frequency of ${frequency} Hz (${frequency / 1000} kHz) leaves no room for setting the pin low. Since this is almost certainly not what you wanted to do, aborting here.`)
+	}
+	for(let i = 0; i < cycles; i++) {
+		writeAllPins(HIGH)
+		rpio.msleep(pulseWidth)
+		writeAllPins(LOW)
+		rpio.msleep(antiPulseWidth)
+	}
+}
+
+let first = pins[0]
+
+// Light up everything
+
+writeAllPins(HIGH)
+rpio.sleep(1)
+writeAllPins(LOW)
+
+let sleep = () => rpio.msleep(500)
+
+// Ascend the pins
+
+write(pins[0], HIGH)
+sleep()
+write(pins[0], LOW)
+write(pins[1], HIGH)
+sleep()
+write(pins[1], LOW)
+write(pins[2], HIGH)
+sleep()
+write(pins[2], LOW)
+write(pins[3], HIGH)
+sleep()
+write(pins[3], LOW)
+write(pins[4], HIGH)
+sleep()
+write(pins[4], LOW)
+
+// Descend the pins
+
+write(pins[3], HIGH)
+sleep()
+write(pins[3], LOW)
+write(pins[2], HIGH)
+sleep()
+write(pins[2], LOW)
+write(pins[1], HIGH)
+sleep()
+write(pins[1], LOW)
+write(pins[0], HIGH)
+sleep()
+write(pins[0], LOW)
+
+// Walk in to the center
+
+write(pins[0], HIGH)
+write(pins[4], HIGH)
+sleep()
+write(pins[0], LOW)
+write(pins[4], LOW)
+write(pins[1], HIGH)
+write(pins[3], HIGH)
+sleep()
+write(pins[1], LOW)
+write(pins[3], LOW)
+write(pins[2], HIGH)
+sleep()
+
+// Walk back out
+
+write(pins[2], LOW)
+sleep()
+write(pins[1], HIGH)
+write(pins[3], HIGH)
+sleep()
+write(pins[1], LOW)
+write(pins[3], LOW)
+write(pins[0], HIGH)
+write(pins[4], HIGH)
+sleep()
+write(pins[0], LOW)
+write(pins[4], LOW)
+
+// Mega PWM
+
+doMegaPWM(100, 5, 2000)
+doMegaPWM(100, 2, 3000)
+doMegaPWM(50, 5, 2000)
+doMegaPWM(1000, 1, 5)
+
+for(let i = 0, let pin; i < pins.length, pin = pins[i]; i++) {
+	rpio.close(pin)
+}
