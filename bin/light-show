@@ -113,7 +113,7 @@ const doTheThing = () => {
 	doMegaPWM(100, 5, 2000)
 	doMegaPWM(100, 2, 3000)
 	doMegaPWM(50, 5, 2000)
-	doMegaPWM(1000, 1, 5)
+	doMegaPWM(1000, 0.2, 5)
 
 	for(let i = 0, pin; i < pins.length, pin = pins[i]; i++) {
 		rpio.close(pin)
