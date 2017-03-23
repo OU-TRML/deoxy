@@ -12,7 +12,6 @@ router.post('/', (req, res) => {
 	let states = [!!req.body.L1, !!req.body.L2, !!req.body.L3]
 	let pins = [11, 13, 15]
 	console.log(`Applying states (${states}) to pins (${pins})${duration ? (" for duration " + duration + " ms") : ""}.`)
-	let Pin = require('../lib/pin')
 	if(duration) {
 		for(let i = 0; i < pins.length; i++) {
 			if(states[i]) {
