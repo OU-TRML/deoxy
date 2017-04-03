@@ -96,7 +96,6 @@ const doTheThing = () => {
 	// Walk back out
 
 	write(pins[2], LOW)
-	sleep()
 	write(pins[1], HIGH)
 	write(pins[3], HIGH)
 	sleep()
