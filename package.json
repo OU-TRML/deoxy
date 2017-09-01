@@ -25,6 +25,6 @@
     "express": "^4.15.2",
     "node-schedule": "^1.2.1",
     "pug": "^2.0.0-beta11",
-    "rpio": "^0.9.16"
+    "rpio": "jperkin/node-rpio#18ff8a6"
   }
 }
