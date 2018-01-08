@@ -1,0 +1,12 @@
+[package]
+name = "deoxy"
+version = "0.1.0"
+authors = ["Alex Hamilton <alex.hamilton@ou.edu>"]
+description = "A programmable, user-friendly buffer exchange system."
+
+[dependencies]
+
+[[bin]]
+name = "main"
+doc = false
+path = "src/main.rs"
