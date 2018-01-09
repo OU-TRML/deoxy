@@ -1,6 +1,6 @@
 [package]
 name = "deoxy"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Alex Hamilton <alex.hamilton@ou.edu>"]
 description = "A programmable, user-friendly buffer exchange system."
 
