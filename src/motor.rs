@@ -2,22 +2,34 @@ use std::time::Duration;
 
 // https://servodatabase.com/servo/hitec/hs-645mg
 
+/// Represents the range of possible values a motor's pulse width can take (as `(min, max)`).
+pub type MotorRange = (Duration, Duration);
+
+/// Possible errors encountered when changing the motor's pulse width.
 pub enum MotorError {
+	/// The user tried to change the pulse width to a duration lying outside the set bounds.
 	OutOfBounds,
+	/// An error occured in sending the required message. If applicable, more information is supplied in the associated `String`.
 	CommunicationError(Option<String>)
 }
 
-/// A `Motor` represents a hardware motor. It's given all the necessary configuration information to manage its own position and communication and provides a high-level interface to accomplish tasks.
+/// A `Motor` represents a hardware motor.
+///
+/// Motors are given all the necessary configuration information to manage their own position and communication and provide a high-level interface to accomplish related tasks.
 pub struct Motor {
 	pin: u8,
+	/// The current pulse width.
 	pulse_width: Duration,
 	period: Duration, // 20 ms
-	range: (Duration, Duration)
+	range: MotorRange
 }
 
 impl Motor {
 
-	pub fn new(pin: u8, period: Duration, range: (Duration, Duration)) -> Self {
+	/// Constructs a new motor on the given pin which has the given period.
+	///
+	/// `range` takes the format `(minimum, maximum)`.
+	pub fn new(pin: u8, period: Duration, range: MotorRange) -> Self {
 		let mut motor = Self {
 			pin,
 			period,

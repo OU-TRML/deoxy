@@ -1,6 +1,5 @@
 extern crate deoxy;
-use deoxy::Hub;
-use deoxy::Message;
+use deoxy::communication::{Hub, Message};
 
 fn main() {
 	let hub = Hub::new(3);
