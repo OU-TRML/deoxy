@@ -13,7 +13,7 @@ pub enum MotorError {
 	CommunicationError(Option<String>)
 }
 
-/// A `Motor` represents a hardware motor.
+/// Represents a hardware motor.
 ///
 /// Motors are given all the necessary configuration information to manage their own position and communication and provide a high-level interface to accomplish related tasks.
 pub struct Motor {
