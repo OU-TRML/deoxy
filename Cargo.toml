@@ -6,6 +6,7 @@ description = "A programmable, user-friendly buffer exchange system."
 license = "ISC"
 
 [dependencies]
+gpio = "0.3.0"
 
 [[bin]]
 name = "main"
