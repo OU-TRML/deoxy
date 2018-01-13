@@ -74,11 +74,11 @@ pub mod communication {
 		/// The main loop, wherein all logic happens on child (motor) threads.
 		fn _loop(&mut self) {
 			while let Ok(message) = self.receiver.recv() {
-				match message {
-					Message::Debug(m) => println!("Thread {} received message \"{}\"", self.id, m),
-					Message::SetPulseWidth(width) => { let _ = self.motor.set_pulse_width(width); }, // TODO: Error handling
-					Message::Stop => { let _ = self.motor.set_neutral(); },
-					_ => {}
+				let result = match message {
+					Message::Debug(m) => { println!("Thread {} received message: \"{}\"", self.id, m); Ok(()) },
+					Message::SetPulseWidth(width) => self.motor.set_pulse_width(width),
+					Message::Stop => self.motor.set_neutral(), // TODO: Invalidate queue
+					_ => unimplemented!()
 				};
 			}
 		}
