@@ -61,9 +61,11 @@ impl Motor {
 			pin,
 			period,
 			range,
-			pulse_width: Duration::new(0, 0)
+			pulse_width: Duration::new(0, 0),
+			output: sysfs::SysFsGpioOutput::new(pin as u16).unwrap(),
+			queued: Some((Instant::now(), true)) // Set high immediately (TODO: Remove)
 		};
-		let _ = motor.set_neutral();
+		// let _ = motor.set_neutral();
 		motor
 	}
 
