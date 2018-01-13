@@ -73,6 +73,7 @@ pub mod communication {
 
 		/// The main loop, wherein all logic happens on child (motor) threads.
 		fn _loop(&mut self) {
+			// self.motor._loop(); // TODO: Spin up another thread.
 			while let Ok(message) = self.receiver.recv() {
 				let result = match message {
 					Message::Debug(m) => { println!("Thread {} received message: \"{}\"", self.id, m); Ok(()) },
