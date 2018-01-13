@@ -1,4 +1,9 @@
-use std::time::Duration;
+extern crate gpio;
+
+use std::time::{Duration, Instant};
+
+use self::gpio::{GpioOut, sysfs};
+use std::io::Error;
 
 // https://servodatabase.com/servo/hitec/hs-645mg
 
@@ -13,6 +18,8 @@ pub enum MotorError {
 	CommunicationError(Option<String>)
 }
 
+type ScheduledChange = (Instant, bool);
+
 /// Represents a hardware motor.
 ///
 /// Motors are given all the necessary configuration information to manage their own position and communication and provide a high-level interface to accomplish related tasks.
@@ -21,10 +28,30 @@ pub struct Motor {
 	/// The current pulse width.
 	pulse_width: Duration,
 	period: Duration, // 20 ms
-	range: MotorRange
+	range: MotorRange,
+	output: sysfs::SysFsGpioOutput,
+	queued: Option<ScheduledChange>
 }
 
 impl Motor {
+
+	#[inline(always)]
+	fn set_gpio_high(&mut self) -> Result<(), Error> {
+		self.output.set_high()
+	}
+
+	#[inline(always)]
+	fn set_gpio_low(&mut self) -> Result<(), Error> {
+		self.output.set_low()
+	}
+
+	fn set_gpio(&mut self, high: bool) -> Result<(), Error> {
+		if high {
+			self.set_gpio_high()
+		} else {
+			self.set_gpio_low()
+		}
+	}
 
 	/// Constructs a new motor on the given pin which has the given period.
 	///
@@ -77,6 +104,23 @@ impl Motor {
 		} else {
 			self.pulse_width = pulse_width;
 			Ok(())
+		}
+	}
+
+	pub fn _loop(&mut self) {
+		loop {
+			if let Some(action) = self.queued.clone() {
+				let timestamp = Instant::now();
+				if timestamp >= action.0 {
+					let value = action.1;
+					let _ = self.set_gpio(value);
+					self.queued = Some(if value {
+						(timestamp + self.pulse_width, false)
+					} else {
+						(timestamp + self.period - self.pulse_width, true)
+					})
+				}
+			}
 		}
 	}
 
