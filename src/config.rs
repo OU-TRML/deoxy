@@ -25,6 +25,16 @@ impl Config {
 			}
 		}
 	}
+
+	/// Returns the number of motors configured.
+	pub fn order(&self) -> usize {
+		if let Some(nodes) = self.tree.get("motors").and_then(|n| n.as_array()) {
+			nodes.len()
+		} else {
+			0
+		}
+	}
+
 }
 
 impl Default for Config {
