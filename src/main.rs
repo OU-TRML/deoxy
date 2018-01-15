@@ -15,7 +15,7 @@ macro_rules! print_help {
 		print_help!("{}", $arg);
 	});
 	() => ({
-		println!("usage: {name} [--help] [--config-path <path>]", name=env::args().nth(0).unwrap_or("deoxy".to_string()));
+		println!("usage: {name} [help] [--config-path <path>]", name=env::args().nth(0).unwrap_or("deoxy".to_string()));
 	});
 }
 
