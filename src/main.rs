@@ -25,7 +25,7 @@ fn main() {
 	match Flag::from(args) {
 		Ok(flags) => {
 			let config = flags.iter().map(|x| match x { &Flag::ConfigPath(ref path) => Some(path), _ => None }).last().map(|ref path| Config::read_or_default(path.unwrap().as_str())).unwrap_or_default();
-			let order = config.order();
+			let order = config.order;
 			let hub = Hub::new(order as u8);
 			let mut queue = Vec::with_capacity(order);
 			for i in 0..order {
