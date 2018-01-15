@@ -29,20 +29,35 @@ pub struct Motor {
 	pulse_width: Duration,
 	period: Duration, // 20 ms
 	range: MotorRange,
-	output: sysfs::SysFsGpioOutput,
-	queued: Option<ScheduledChange>
+	queued: Option<ScheduledChange>,
+	#[cfg(not(test))]
+	output: sysfs::SysFsGpioOutput
 }
 
 impl Motor {
 
+	#[cfg(not(test))]
 	#[inline(always)]
 	fn set_gpio_high(&mut self) -> Result<(), Error> {
 		self.output.set_high()
 	}
 
+	#[cfg(test)]
+	#[inline(always)]
+	fn set_gpio_high(&mut self) -> Result<(), Error> {
+		Ok(())
+	}
+
+	#[cfg(not(test))]
 	#[inline(always)]
 	fn set_gpio_low(&mut self) -> Result<(), Error> {
 		self.output.set_low()
+	}
+
+	#[cfg(test)]
+	#[inline(always)]
+	fn set_gpio_low(&mut self) -> Result<(), Error> {
+		Ok(())
 	}
 
 	fn set_gpio(&mut self, high: bool) -> Result<(), Error> {
@@ -62,8 +77,9 @@ impl Motor {
 			period,
 			range,
 			pulse_width: Duration::new(0, 0),
-			output: sysfs::SysFsGpioOutput::new(pin as u16).unwrap(),
-			queued: Some((Instant::now(), true)) // Set high immediately (TODO: Remove)
+			queued: Some((Instant::now(), true)), // Set high immediately (TODO: Remove)
+			#[cfg(not(test))]
+			output: sysfs::SysFsGpioOutput::new(pin as u16).unwrap()
 		};
 		// let _ = motor.set_neutral();
 		motor
@@ -71,7 +87,7 @@ impl Motor {
 
 	/// The minimum usable pulse width, as specified upon creation.
 	/// # Examples
-	/// ```
+	/// ```rust,no_run
 	/// use std::time::Duration;
 	/// use deoxy::Motor;
 	/// let motor = Motor::new(0, Duration::from_millis(20), (Duration::new(0, 900_000), Duration::new(0, 1_200_000)));
@@ -83,7 +99,7 @@ impl Motor {
 
 	/// The maximum usable pulse width, as specified upon creation.
 	/// # Examples
-	/// ```
+	/// ```rust,no_run
 	/// use std::time::Duration;
 	/// use deoxy::Motor;
 	/// let motor = Motor::new(0, Duration::from_millis(20), (Duration::new(0, 900_000), Duration::new(0, 1_200_000)));
