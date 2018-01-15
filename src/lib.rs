@@ -1,7 +1,5 @@
 mod motor;
 pub use motor::{Motor, MotorError, MotorRange};
-/// Handles motor layout and other configuration.
-pub mod config;
 
 /// All things related to motor control and management lie within this module.
 pub mod communication {
