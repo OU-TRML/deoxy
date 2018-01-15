@@ -37,7 +37,7 @@ impl Flag {
 						error!("{} argument was given with no path.", value)
 					}
 				},
-				"-h" | "--h" | "--help" => error!(),
+				"-h" | "--h" | "--help" | "help" => error!(),
 				_ => {
 					error!("Unrecognized argument {}", value)
 				}
