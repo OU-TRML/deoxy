@@ -30,7 +30,7 @@ fn main() {
 			for i in 0..order {
 				queue.push(hub.send(i, Message::Debug(format!("Hello, thread {}!", i))));
 			}
-			loop { }
+			loop { } // Everything else happens on other threads, but we have to keep the main thread alive.
 		}, Err(text) => { // Failed to parse the passed arguments; gently correct the user by showing the help message.
 			if let Some(message) = text {
 				print_help!(message);

@@ -144,7 +144,7 @@ impl Motor {
 	pub fn _loop(&self) {
 		let queue = self.queue.clone(); // TODO: Is this necessary?
 		let pin = self.pin.clone();
-		thread::spawn(move || {
+		let result = thread::spawn(move || {
 			loop {
 				if let Some(action) = queue.lock().unwrap().pop() {
 					let now = Instant::now();
@@ -152,10 +152,16 @@ impl Motor {
 					while now < action.0 { // TODO: Perhaps loop with a break?
 						// No-op (busy loop)
 					}
-					let _ = pin.lock().unwrap().set(value); // TODO: Handle somehow (even if that's by crashing (which reminds me: monitoring))
+					if let Err(err) = pin.lock().unwrap().set(value) {
+						panic!(err);
+					}
 				}
 			}
 		}).join();
+		if let Err(message) = result {
+			println!("Child thread crashed ({:?}); respawning.", message); // TODO: stderr
+		}
+		self._loop();
 	}
 
 }
