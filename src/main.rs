@@ -20,7 +20,6 @@ macro_rules! print_help {
 }
 
 fn main() {
-	// Config file support
 	let args = env::args();
 	match Flag::from(args) {
 		Ok(flags) => {
