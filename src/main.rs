@@ -32,7 +32,7 @@ fn main() {
 				queue.push(hub.send(i, Message::Debug(format!("Hello, thread {}!", i))));
 			}
 			loop { }
-		}, Err(text) => {
+		}, Err(text) => { // Failed to parse the passed arguments; gently correct the user by showing the help message.
 			if let Some(message) = text {
 				print_help!(message);
 			} else {

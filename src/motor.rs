@@ -4,6 +4,8 @@ use std::time::{Duration, Instant};
 
 use self::gpio::{GpioOut, sysfs};
 use std::io::Error;
+use std::thread;
+use std::sync::{Mutex, Arc};
 
 // https://servodatabase.com/servo/hitec/hs-645mg
 
@@ -18,68 +20,82 @@ pub enum MotorError {
 	CommunicationError(Option<String>)
 }
 
-type ScheduledChange = (Instant, bool);
-
-/// Represents a hardware motor.
-///
-/// Motors are given all the necessary configuration information to manage their own position and communication and provide a high-level interface to accomplish related tasks.
-pub struct Motor {
+struct Pin {
 	pin: u8,
-	/// The current pulse width.
-	pulse_width: Duration,
-	period: Duration, // 20 ms
-	range: MotorRange,
-	queued: Option<ScheduledChange>,
 	#[cfg(not(test))]
 	output: sysfs::SysFsGpioOutput
 }
 
-impl Motor {
+impl Pin {
+
+	fn new(pin: u8) -> Self {
+		Self {
+			pin,
+			#[cfg(not(test))]
+			output: sysfs::SysFsGpioOutput::new(pin as u16).unwrap()
+		}
+	}
 
 	#[cfg(not(test))]
 	#[inline(always)]
-	fn set_gpio_high(&mut self) -> Result<(), Error> {
+	pub fn set_high(&mut self) -> Result<(), Error> {
 		self.output.set_high()
 	}
 
 	#[cfg(test)]
 	#[inline(always)]
-	fn set_gpio_high(&mut self) -> Result<(), Error> {
+	pub fn set_high(&mut self) -> Result<(), Error> {
 		Ok(())
 	}
 
 	#[cfg(not(test))]
 	#[inline(always)]
-	fn set_gpio_low(&mut self) -> Result<(), Error> {
+	pub fn set_low(&mut self) -> Result<(), Error> {
 		self.output.set_low()
 	}
 
 	#[cfg(test)]
 	#[inline(always)]
-	fn set_gpio_low(&mut self) -> Result<(), Error> {
+	pub fn set_low(&mut self) -> Result<(), Error> {
 		Ok(())
 	}
 
-	fn set_gpio(&mut self, high: bool) -> Result<(), Error> {
+	pub fn set(&mut self, high: bool) -> Result<(), Error> {
 		if high {
-			self.set_gpio_high()
+			self.set_high()
 		} else {
-			self.set_gpio_low()
+			self.set_low()
 		}
 	}
+}
+
+type ScheduledChange = (Instant, bool);
+type ScheduledChanges = Vec<ScheduledChange>;
+
+/// Represents a hardware motor.
+///
+/// Motors are given all the necessary configuration information to manage their own position and communication and provide a high-level interface to accomplish related tasks.
+pub struct Motor {
+	pin: Arc<Mutex<Pin>>,
+	/// The current pulse width.
+	pulse_width: Duration,
+	period: Duration, // 20 ms
+	range: MotorRange,
+	queue: Arc<Mutex<ScheduledChanges>>
+}
+
+impl Motor {
 
 	/// Constructs a new motor on the given pin which has the given period.
 	///
 	/// `range` takes the format `(minimum, maximum)`.
 	pub fn new(pin: u8, period: Duration, range: MotorRange) -> Self {
 		let mut motor = Self {
-			pin,
+			pin: Arc::new(Mutex::new(Pin::new(pin))),
 			period,
 			range,
 			pulse_width: Duration::new(0, 0),
-			queued: Some((Instant::now(), true)), // Set high immediately (TODO: Remove)
-			#[cfg(not(test))]
-			output: sysfs::SysFsGpioOutput::new(pin as u16).unwrap()
+			queue: Arc::new(Mutex::new(vec![(Instant::now(), true)])), // Set high immediately (TODO: Remove)
 		};
 		// let _ = motor.set_neutral();
 		motor
@@ -125,21 +141,21 @@ impl Motor {
 		}
 	}
 
-	pub fn _loop(&mut self) {
-		loop {
-			if let Some(action) = self.queued.clone() {
-				let timestamp = Instant::now();
-				if timestamp >= action.0 {
+	pub fn _loop(&self) {
+		let queue = self.queue.clone(); // TODO: Is this necessary?
+		let pin = self.pin.clone();
+		thread::spawn(move || {
+			loop {
+				if let Some(action) = queue.lock().unwrap().pop() {
+					let now = Instant::now();
 					let value = action.1;
-					let _ = self.set_gpio(value);
-					self.queued = Some(if value {
-						(timestamp + self.pulse_width, false)
-					} else {
-						(timestamp + self.period - self.pulse_width, true)
-					})
+					while now < action.0 { // TODO: Perhaps loop with a break?
+						// No-op (busy loop)
+					}
+					let _ = pin.lock().unwrap().set(value); // TODO: Handle somehow (even if that's by crashing (which reminds me: monitoring))
 				}
 			}
-		}
+		}).join();
 	}
 
 }
