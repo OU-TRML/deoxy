@@ -161,26 +161,27 @@ impl Motor {
 	}
 
 	pub fn _loop(&self) {
-		let queue = self.queue.clone(); // TODO: Is this necessary?
-		let pin = self.pin.clone();
-		let result = thread::spawn(move || {
-			loop {
-				if let Some(action) = queue.lock().unwrap().pop() {
-					let now = Instant::now();
-					let value = action.1;
-					while now < action.0 { // TODO: Perhaps loop with a break?
-						// No-op (busy loop)
-					}
-					if let Err(err) = pin.lock().unwrap().set(value) {
-						panic!(err);
+		loop { // TODO: Allow exiting loop
+			let queue = self.queue.clone(); // TODO: Is this necessary?
+			let pin = self.pin.clone();
+			let result = thread::spawn(move || {
+				loop {
+					if let Some(action) = queue.lock().unwrap().pop() {
+						let now = Instant::now();
+						let value = action.1;
+						while now < action.0 { // TODO: Perhaps loop with a break?
+							// No-op (busy loop)
+						}
+						if let Err(err) = pin.lock().unwrap().set(value) {
+							panic!(err);
+						}
 					}
 				}
+			}).join();
+			if let Err(message) = result {
+				println!("Child thread crashed ({:?}); respawning.", message); // TODO: stderr
 			}
-		}).join();
-		if let Err(message) = result {
-			println!("Child thread crashed ({:?}); respawning.", message); // TODO: stderr
 		}
-		self._loop();
 	}
 
 }
