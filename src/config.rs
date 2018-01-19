@@ -2,7 +2,6 @@ extern crate toml;
 use self::toml::Value;
 use self::toml::value::Table;
 use std::default::Default;
-use std::io;
 use std::io::prelude::*;
 use std::fs::File;
 use std::time::Duration;
@@ -37,7 +36,14 @@ impl MotorType {
 			match &*t.to_lowercase() {
 				p if Regex::new(r"hs(-|_)?645mg").unwrap().is_match(p) => Some(MotorType::HS_645MG),
 				"custom" => {
-					None // TODO: Support custom types
+					if let Some(low) = value.get("min-nanos").and_then(|v| v.as_integer()) {
+						if let Some(high) = value.get("max-nanos").and_then(|v| v.as_integer()) {
+							if let Some(period) = value.get("period-millis").and_then(|v| v.as_integer()) {
+								return Some(MotorType::Custom(Duration::from_millis(period as u64), (Duration::new(0, low as u32), Duration::new(0, high as u32))));
+							}
+						}
+					}
+					None
 				}, _ => None
 			}
 		} else {
