@@ -22,6 +22,7 @@ pub enum MotorError {
 
 struct Pin {
 	pin: u8,
+	high: bool,
 	#[cfg(not(test))]
 	output: sysfs::SysFsGpioOutput
 }
@@ -31,6 +32,7 @@ impl Pin {
 	fn new(pin: u8) -> Self {
 		Self {
 			pin,
+			high: false,
 			#[cfg(not(test))]
 			output: sysfs::SysFsGpioOutput::new(pin as u16).unwrap()
 		}
@@ -39,28 +41,33 @@ impl Pin {
 	#[cfg(not(test))]
 	#[inline(always)]
 	pub fn set_high(&mut self) -> Result<(), Error> {
+		self.high = true;
 		self.output.set_high()
 	}
 
 	#[cfg(test)]
 	#[inline(always)]
 	pub fn set_high(&mut self) -> Result<(), Error> {
+		self.high = true;
 		Ok(())
 	}
 
 	#[cfg(not(test))]
 	#[inline(always)]
 	pub fn set_low(&mut self) -> Result<(), Error> {
+		self.high = false;
 		self.output.set_low()
 	}
 
 	#[cfg(test)]
 	#[inline(always)]
 	pub fn set_low(&mut self) -> Result<(), Error> {
+		self.high = false;
 		Ok(())
 	}
 
 	pub fn set(&mut self, high: bool) -> Result<(), Error> {
+		self.high = high;
 		if high {
 			self.set_high()
 		} else {
