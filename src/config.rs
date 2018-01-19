@@ -9,6 +9,7 @@ use std::time::Duration;
 extern crate regex;
 use self::regex::Regex;
 
+#[allow(non_camel_case_types)]
 #[derive(Debug)]
 pub enum MotorType {
 	HS_645MG,
@@ -48,16 +49,16 @@ impl MotorType {
 
 #[derive(Debug)]
 pub struct MotorSpec {
-	port: u8,
-	variant: MotorType
+	pub pin: u8,
+	pub variant: MotorType
 }
 
 impl MotorSpec {
 	fn range(&self) -> (Duration, Duration) { self.variant.range() }
 	fn period(&self) -> Duration { self.variant.period() }
 	fn try_from(value: &Table) -> Option<Self> {
-		if let Some(port) = value.get("port").and_then(|p| p.as_integer()) {
-			MotorType::try_from(value).map(|t| Self { port: port as u8, variant: t }) // Nice
+		if let Some(pin) = value.get("pin").and_then(|p| p.as_integer()) {
+			MotorType::try_from(value).map(|t| Self { pin: pin as u8, variant: t }) // Nice
 		} else {
 			None
 		}

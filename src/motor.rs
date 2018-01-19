@@ -151,7 +151,7 @@ impl Motor {
 		}
 	}
 
-	fn add_pulses(&mut self, number: u32) {
+	pub fn add_pulses(&mut self, number: u32) {
 		let mut queue = self.queue.lock().unwrap();
 		let last = queue.front().map(|t| t.0).unwrap_or(Instant::now());
 		let offset = self.period;

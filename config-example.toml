@@ -1,15 +1,15 @@
 [[motors]]
-port = 7
+pin = 7
 type = "hs-645mg"
 
 [[motors]]
-port = 11
+pin = 11
 type = "hs-645mg"
 
 [[motors]]
-port = 13
+pin = 13
 type = "hs-645mg"
 
 [[motors]]
-port = 15
+pin = 15
 type = "hs-645mg"

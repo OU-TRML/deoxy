@@ -79,6 +79,11 @@ pub mod communication {
 					Message::Debug(m) => { println!("Thread {} received message: \"{}\"", self.id, m); Ok(()) },
 					Message::SetPulseWidth(width) => self.motor.set_pulse_width(width),
 					Message::Stop => self.motor.set_neutral(), // TODO: Invalidate queue
+					Message::SetPulseWidthForDuration(width, duration) => {
+						let result = self.motor.set_pulse_width(width);
+						self.motor.add_pulses(((duration.as_secs() as u64 * 1_000_000_000u64 / width.subsec_nanos() as u64)/1_000_000_000u64) as u32);
+						result
+					}
 					_ => unimplemented!()
 				};
 			}
