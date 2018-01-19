@@ -148,6 +148,18 @@ impl Motor {
 		}
 	}
 
+	fn add_pulses(&mut self, number: u32) {
+		let mut queue = self.queue.lock().unwrap();
+		let last = queue.last().map(|t| t.0).unwrap_or(Instant::now());
+		let offset = self.period;
+		let width = self.pulse_width;
+		for i in 0..number {
+			let target = last + offset * i;
+			queue.push((target, true));
+			queue.push((target + width, false));
+		}
+	}
+
 	pub fn _loop(&self) {
 		let queue = self.queue.clone(); // TODO: Is this necessary?
 		let pin = self.pin.clone();
