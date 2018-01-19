@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use self::gpio::{GpioOut, sysfs};
 use std::io::Error;
 use std::thread;
+use std::collections::VecDeque;
 use std::sync::{Mutex, Arc};
 
 // https://servodatabase.com/servo/hitec/hs-645mg
@@ -77,7 +78,7 @@ impl Pin {
 }
 
 type ScheduledChange = (Instant, bool);
-type ScheduledChanges = Vec<ScheduledChange>;
+type ScheduledChanges = VecDeque<ScheduledChange>;
 
 /// Represents a hardware motor.
 ///
@@ -97,12 +98,14 @@ impl Motor {
 	///
 	/// `range` takes the format `(minimum, maximum)`.
 	pub fn new(pin: u8, period: Duration, range: MotorRange) -> Self {
+		let mut queue = VecDeque::new();
+		queue.push_back((Instant::now(), true));
 		let mut motor = Self {
 			pin: Arc::new(Mutex::new(Pin::new(pin))),
 			period,
 			range,
 			pulse_width: Duration::new(0, 0),
-			queue: Arc::new(Mutex::new(vec![(Instant::now(), true)])), // Set high immediately (TODO: Remove)
+			queue: Arc::new(Mutex::new(queue)), // Set high immediately (TODO: Remove)
 		};
 		// let _ = motor.set_neutral();
 		motor
@@ -150,13 +153,13 @@ impl Motor {
 
 	fn add_pulses(&mut self, number: u32) {
 		let mut queue = self.queue.lock().unwrap();
-		let last = queue.last().map(|t| t.0).unwrap_or(Instant::now());
+		let last = queue.front().map(|t| t.0).unwrap_or(Instant::now());
 		let offset = self.period;
 		let width = self.pulse_width;
 		for i in 0..number {
 			let target = last + offset * i;
-			queue.push((target, true));
-			queue.push((target + width, false));
+			queue.push_back((target, true));
+			queue.push_back((target + width, false));
 		}
 	}
 
@@ -166,7 +169,7 @@ impl Motor {
 			let pin = self.pin.clone();
 			let result = thread::spawn(move || {
 				loop {
-					if let Some(action) = queue.lock().unwrap().pop() {
+					if let Some(action) = queue.lock().unwrap().pop_front() {
 						let now = Instant::now();
 						let value = action.1;
 						while now < action.0 { // TODO: Perhaps loop with a break?
