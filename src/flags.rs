@@ -30,7 +30,7 @@ impl Flag {
 			}
 			let flag = match value.as_str() {
 				"-c" | "--c" | "--config-path" => {
-					let skip_next = 1;
+					skip_next = 1;
 					if let Some(path) = args.clone().get(index + 1) {
 						Ok(Flag::ConfigPath(path.1.clone()))
 					} else {
