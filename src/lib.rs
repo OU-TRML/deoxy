@@ -1,4 +1,6 @@
 mod motor;
+pub mod config;
+
 pub use motor::{Motor, MotorError, MotorRange};
 
 /// All things related to motor control and management lie within this module.
@@ -8,6 +10,7 @@ pub mod communication {
 	use std::sync::mpsc;
 	use std::time::Duration;
 	use motor::Motor;
+	use config::Config;
 
 	/// Messages are used to effect changes in motor behavior, and are passed to appropriate child threads through a `Hub`.
 	pub enum Message {
@@ -30,8 +33,24 @@ pub mod communication {
 
 	impl Hub {
 
+		/// Constructs a new `Hub` with the given configuration.
+		pub fn new(config: Config) -> Self {
+			let mut senders = Vec::with_capacity(config.order);
+			let mut i = 0;
+			for spec in config.motors {
+				let (tx, rx) = mpsc::channel();
+				thread::spawn(move || {
+					let mut slave = Slave::new(i, rx, spec.pin);
+					slave._loop();
+				});
+				senders.push(tx);
+				i += 1;
+			}
+			Self { senders }
+		}
+
 		/// Constructs a new `Hub` with the given number of threads.
-		pub fn new(order: u8) -> Self {
+		pub fn with_threads(order: u8) -> Self {
 			let mut senders = Vec::with_capacity(order as usize);
 			for i in 0..order {
 				let (tx, rx) = mpsc::channel();
