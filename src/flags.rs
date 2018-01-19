@@ -1,5 +1,4 @@
 use std::env::Args;
-use std::convert::From;
 
 /// An abstract type representing a command-line flag supplied at runtime.
 pub enum Flag {

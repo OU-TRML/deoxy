@@ -2,7 +2,8 @@ extern crate gpio;
 
 use std::time::{Duration, Instant};
 
-use self::gpio::{GpioOut, sysfs};
+use self::gpio::GpioOut;
+use self::gpio::sysfs::SysFsGpioOutput;
 use std::io::Error;
 use std::thread;
 use std::collections::VecDeque;
@@ -21,11 +22,11 @@ pub enum MotorError {
 	CommunicationError(Option<String>)
 }
 
+#[derive(Debug)]
 struct Pin {
 	pin: u8,
 	high: bool,
-	#[cfg(not(test))]
-	output: sysfs::SysFsGpioOutput
+	output: SysFsGpioOutput
 }
 
 impl Pin {
@@ -34,37 +35,20 @@ impl Pin {
 		Self {
 			pin,
 			high: false,
-			#[cfg(not(test))]
-			output: sysfs::SysFsGpioOutput::new(pin as u16).unwrap()
+			output: SysFsGpioOutput::new(pin as u16).unwrap()
 		}
 	}
 
-	#[cfg(not(test))]
 	#[inline(always)]
 	pub fn set_high(&mut self) -> Result<(), Error> {
 		self.high = true;
 		self.output.set_high()
 	}
 
-	#[cfg(test)]
-	#[inline(always)]
-	pub fn set_high(&mut self) -> Result<(), Error> {
-		self.high = true;
-		Ok(())
-	}
-
-	#[cfg(not(test))]
 	#[inline(always)]
 	pub fn set_low(&mut self) -> Result<(), Error> {
 		self.high = false;
 		self.output.set_low()
-	}
-
-	#[cfg(test)]
-	#[inline(always)]
-	pub fn set_low(&mut self) -> Result<(), Error> {
-		self.high = false;
-		Ok(())
 	}
 
 	pub fn set(&mut self, high: bool) -> Result<(), Error> {

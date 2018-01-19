@@ -103,7 +103,6 @@ pub mod communication {
 						self.motor.add_pulses(((duration.as_secs() as u64 * 1_000_000_000u64 / width.subsec_nanos() as u64)/1_000_000_000u64) as u32);
 						result
 					}
-					_ => unimplemented!()
 				};
 			}
 		}
