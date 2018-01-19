@@ -11,7 +11,7 @@ toml = "0.4.5"
 regex = "0.2.5"
 
 [[bin]]
-name = "main"
+name = "deoxy"
 doc = false
 path = "src/main.rs"
 
