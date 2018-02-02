@@ -7,15 +7,12 @@ license = "ISC"
 
 [dependencies]
 gpio = "0.3.0"
-toml = "0.4.5"
-regex = "0.2.5"
 
 [[bin]]
 name = "deoxy"
 doc = false
 path = "src/main.rs"
 
-[[bin]]
-name = "twenty"
-doc = false
-path = "src/twenty.rs"
+[features]
+default = []
+stub = []
