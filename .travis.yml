@@ -7,3 +7,6 @@ matrix:
   allow_failures:
     - rust: nightly
     - rust: beta
+script:
+  - cargo build --feature "stub" --verbose
+  - cargo test --feature "stub" --verbose
