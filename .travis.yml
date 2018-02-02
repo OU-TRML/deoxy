@@ -8,5 +8,5 @@ matrix:
     - rust: nightly
     - rust: beta
 script:
-  - cargo build --feature "stub" --verbose
-  - cargo test --feature "stub" --verbose
+  - cargo build --features "stub" --verbose
+  - cargo test --features "stub" --verbose
