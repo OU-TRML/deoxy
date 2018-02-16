@@ -81,6 +81,7 @@ impl Pin {
 	/// Performs a single cycle of a wave (for use with PWM) using busy loops.
 	/// # Panics
 	/// This method will panic if `width` >= `total` (that is, the wave is as wide as the period or wider), as this badly malformed of input is likely not somehing that can be recovered from.
+	///
 	/// In general, this method panics if the input is malformed, returning `Result::Err` only in the case of errors from the GPIO underpinnings.
 	pub fn do_wave(&mut self, width: Duration, total: Duration) -> PinResult {
 		assert!(total > width, "Wave pulse of {:?} exceeds period of {:?}.", width, total);

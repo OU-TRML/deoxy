@@ -65,7 +65,9 @@ impl Motor {
 	/// Constructs a new `Motor` with the given properties.
 	/// # Notes
 	/// You are discouraged from using this method outside of testing environments; you should instead use appropriate `From` methods (see below).
+	///
 	/// This method will also instantiate an underlying `Pin`.
+	///
 	/// The resulting object will have a pulse width of 0 until one is specified or the [`_loop`](#method._loop) method automatically generates one (if applicable).
 	pub fn new(pin_number: u16, period: Duration, signal_range: Range<Duration>) -> Self {
 		Self {
