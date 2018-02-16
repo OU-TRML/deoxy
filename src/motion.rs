@@ -46,7 +46,7 @@ pub struct Motor {
 	/// The current (cached) pulse width for the motor signal.
 	pulse_width: Duration,
 	/// The motor's constant, characterisic period.
-	pub period: Duration,
+	period: Duration,
 	/// The range of pulse widths this motor supports (used to calculate appropriate widths for neutral and anti-neutral positions).
 	signal_range: Range<Duration>,
 	/// The range of angles to which this motor may be rotated
@@ -97,7 +97,7 @@ impl Motor {
 		self.pulse_width = (self.signal_range.start + self.signal_range.end) / 2;
 	}
 
-	/// Set the motor angle (in degrees, unfortunately).
+	/// Sets the motor angle (in degrees, unfortunately).
 	/// # Errors
 	/// If the given `angle` doesn't lie within [`angle_range`](#field.angle_range), this method returns Err(()) and nothing happens.
 	pub fn set_angle(&mut self, angle: f32) -> Result<(), ()> {
@@ -111,10 +111,22 @@ impl Motor {
 		}
 	}
 
+	/// Sets the motor to the "zero" position.
+	pub fn set_orthogonal(&mut self) {
+		let _ = self.set_angle(0.0).unwrap();
+	}
+
+	/// Gets the currently-set pulse width.
 	pub fn get_pulse_width(&self) -> Duration {
 		self.pulse_width
 	}
 
+	/// Gets the characteristic period of this motor.
+	pub fn get_period(&self) -> Duration {
+		self.period
+	}
+
+	/// Delegates to [`Pin.do_wave`](struct.Pin.html#method.do_wave)
 	pub fn do_wave(&mut self, width: Duration, total: Duration) {
 		let _ = self.pin.do_wave(width, total).unwrap();
 	}
