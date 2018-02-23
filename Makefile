@@ -10,4 +10,4 @@ build b:
 run:
 	cargo run
 doc docs:
-	cargo rustdoc --bin deoxy -- --document-private-items
+	cargo doc --open
