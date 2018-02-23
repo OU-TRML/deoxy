@@ -2,7 +2,6 @@ use std::time::Duration;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
 
-use io;
 #[allow(unused_imports)]
 use io::{Pin, GpioOutputStub};
 
@@ -80,24 +79,6 @@ impl Motor {
 		}
 	}
 
-	/// The main method which manages the motor.
-	///
-	/// Once this method is invoked, the motor will constantly receive a signal with the characteristic period until an I/O error occurs. The duty cycle can be varied using other methods.
-	/// # Errors
-	/// If this method returns, it will **always** be a `Result::Err<std::io::Error>` describing what went wrong.
-	/// # Notes
-	/// *This method will block*; as such, you should likely call it on a child thread.
-	///
-	/// If this method is invoked and the currently set pulse width is 0 (as would likely happen immediately after instantiation), the pulse width is set to the (calculated) neutral position instead. To disable this behavior, use the config flag `no_neutral_correction`.
-	pub fn _loop(&mut self) -> io::PinResult {
-		if !cfg!(feature = "no_neutral_correction") && self.pulse_width == Duration::new(0, 0) {
-			self.set_neutral();
-		}
-		loop {
-			self.pin.lock().unwrap().do_wave(self.pulse_width, self.period)?;
-		}
-	}
-
 	/// Sets the motor to the neutral position.
 	pub fn set_neutral(&mut self) {
 		self.pulse_width = (self.signal_range.start + self.signal_range.end) / 2;
@@ -133,8 +114,8 @@ impl Motor {
 	}
 
 	/// Delegates to [`Pin.do_wave`](struct.Pin.html#method.do_wave)
-	fn do_wave(&mut self, width: Duration, total: Duration) {
-		let _ = self.pin.lock().unwrap().do_wave(width, total).unwrap();
+	pub fn do_wave(&mut self) {
+		let _ = self.pin.lock().unwrap().do_wave(self.get_pulse_width(), self.get_period()).unwrap();
 	}
 
 }
