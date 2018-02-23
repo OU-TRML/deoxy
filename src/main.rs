@@ -16,7 +16,8 @@ fn main() {
 	let child = thread::spawn(move || {
 		slave._loop();
 	});
-	let _ = maw.send(Action::SetOrthogonal).unwrap(); // TODO: Error handling
+	let _ = maw.send(Action::Close).unwrap(); // TODO: Error handling
+	let _ = maw.send(Action::Open(Duration::from_millis(2000))).unwrap(); // TODO: Error handling
 	let result = child.join();
 	if let Err(err) = result {
 		println!("Error: {:?}", err);

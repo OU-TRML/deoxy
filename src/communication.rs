@@ -1,18 +1,31 @@
 use motion::Motor;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::ops::Range;
+use std::collections::VecDeque;
+
+pub type Delay = Duration;
 
 pub enum Action {
+	/// Stops everything that's going on, clears the queue, and closes the tube.
 	Stop,
-	SetOrthogonal,
-	SetParallel
+	/// Opens the tube for the specified duration (approximately).
+	Open(Duration),
+	/// Closes the tube. Unlike `Stop`, `Close` does not clear the queue.
+	Close,
+	/// Schedules an open event for later.
+	ScheduleOpen(Delay, Duration),
+	/// Schedules a close event for later.
+	ScheduleClose(Delay)
 }
+
+pub type ScheduledAction = (Instant, Action);
 
 pub struct Slave {
 	motor: Arc<Mutex<Motor>>,
-	rx: mpsc::Receiver<Action>
+	rx: mpsc::Receiver<Action>,
+	queue: VecDeque<ScheduledAction>
 }
 
 impl Slave {
@@ -22,7 +35,8 @@ impl Slave {
 		let motor = Arc::new(Mutex::new(Motor::new(pin_number, period, signal_range)));
 		(Self {
 			rx,
-			motor
+			motor,
+			queue: VecDeque::new()
 		}, tx)
 	}
 
@@ -30,8 +44,17 @@ impl Slave {
 	fn handle(&mut self, message: Action) {
 		match message { // TODO: Error handling
 			Action::Stop => { self.motor.lock().unwrap().set_neutral(); }, // TODO: Clear queue
-			Action::SetOrthogonal => { self.motor.lock().unwrap().set_orthogonal(); },
-			Action::SetParallel => { self.motor.lock().unwrap().set_neutral(); },
+			Action::Close => { self.motor.lock().unwrap().set_neutral(); },
+			Action::Open(length) => {
+				self.motor.lock().unwrap().set_orthogonal();
+				self.handle(Action::ScheduleClose(length));
+			},
+			Action::ScheduleOpen(delay, length) => {
+				self.queue.push_back((Instant::now() + delay, Action::Open(length)));
+			},
+			Action::ScheduleClose(delay) => {
+				self.queue.push_back((Instant::now() + delay, Action::Close));
+			}
 		}
 	}
 
@@ -47,8 +70,19 @@ impl Slave {
 				motor.do_wave();
 			}
 		});
-		while let Ok(action) = self.rx.recv() {
-			self.handle(action);
+		loop {
+			match self.rx.try_recv() {
+				Ok(action) => self.handle(action),
+				_ => {} // TODO: Handle error
+			}
+			if let Some(action) = self.queue.pop_front() {
+				let now = Instant::now();
+				if now >= action.0 {
+					self.handle(action.1);
+				} else {
+					self.queue.push_front(action);
+				}
+			}
 		}
 	}
 
