@@ -11,15 +11,16 @@ fn main() {
 		(about: "For all your buffer exchange needs!")
 		(setting: settings::SubcommandRequired)
 		(@arg CONFIG: -c --config +takes_value "Sets a custom config file")
-		(@subcommand start =>
-			(about: "starts the deoxy daemon, or aborts if another instance is detected")
+		(@subcommand run =>
+			// (about: "starts the deoxy daemon, or aborts if another instance is detected")
+			(about: "runs deoxy::main()")
 			)
 		).get_matches();
 
 	// let config = matches.value_of("config").unwrap_or("default.conf");
 
 	match matches.subcommand_name() {
-		Some("start") => deoxy::main(),
+		Some("run") => deoxy::main(),
 		None => {},
 		_ => unreachable!()
 	}
