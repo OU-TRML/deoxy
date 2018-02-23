@@ -7,5 +7,7 @@ run-remote:
 	ssh $(DEOXY_HOST) -t 'cd ~/deoxy && make run'
 build b:
 	cargo build
+run:
+	cargo run
 doc docs:
 	cargo rustdoc --bin deoxy -- --document-private-items
