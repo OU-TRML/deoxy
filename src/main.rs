@@ -17,8 +17,8 @@ fn main() {
 		slave._loop();
 	});
 	let _ = maw.send(Action::SetOrthogonal).unwrap(); // TODO: Error handling
-	/*let result = child.join();
+	let result = child.join();
 	if let Err(err) = result {
 		println!("Error: {:?}", err);
-	}*/
+	}
 }
