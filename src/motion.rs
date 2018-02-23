@@ -1,5 +1,6 @@
 use std::time::Duration;
 use std::ops::Range;
+use std::sync::{Arc, Mutex};
 
 use io;
 #[allow(unused_imports)]
@@ -42,7 +43,7 @@ impl MotorRange {
 /// Represents a motor mounted on the board.
 pub struct Motor {
 	/// The underlying `Pin` instance which manages the state of the GPIO pin to which the motor is attached.
-	pin: Pin,
+	pin: Arc<Mutex<Pin>>,
 	/// The current (cached) pulse width for the motor signal.
 	pulse_width: Duration,
 	/// The motor's constant, characterisic period.
@@ -71,7 +72,7 @@ impl Motor {
 	/// The resulting object will have a pulse width of 0 until one is specified or the [`_loop`](#method._loop) method automatically generates one (if applicable).
 	pub fn new(pin_number: u16, period: Duration, signal_range: Range<Duration>) -> Self {
 		Self {
-			pin: Pin::new(pin_number),
+			pin: Arc::new(Mutex::new(Pin::new(pin_number))),
 			period,
 			pulse_width: Duration::new(0, 0),
 			signal_range,
@@ -80,17 +81,20 @@ impl Motor {
 	}
 
 	/// The main method which manages the motor.
+	///
 	/// Once this method is invoked, the motor will constantly receive a signal with the characteristic period until an I/O error occurs. The duty cycle can be varied using other methods.
 	/// # Errors
 	/// If this method returns, it will **always** be a `Result::Err<std::io::Error>` describing what went wrong.
 	/// # Notes
+	/// *This method will block*; as such, you should likely call it on a child thread.
+	///
 	/// If this method is invoked and the currently set pulse width is 0 (as would likely happen immediately after instantiation), the pulse width is set to the (calculated) neutral position instead. To disable this behavior, use the config flag `no_neutral_correction`.
 	pub fn _loop(&mut self) -> io::PinResult {
 		if !cfg!(feature = "no_neutral_correction") && self.pulse_width == Duration::new(0, 0) {
 			self.set_neutral();
 		}
 		loop {
-			self.pin.do_wave(self.pulse_width, self.period)?;
+			self.pin.lock().unwrap().do_wave(self.pulse_width, self.period)?;
 		}
 	}
 
@@ -129,8 +133,8 @@ impl Motor {
 	}
 
 	/// Delegates to [`Pin.do_wave`](struct.Pin.html#method.do_wave)
-	pub fn do_wave(&mut self, width: Duration, total: Duration) {
-		let _ = self.pin.do_wave(width, total).unwrap();
+	fn do_wave(&mut self, width: Duration, total: Duration) {
+		let _ = self.pin.lock().unwrap().do_wave(width, total).unwrap();
 	}
 
 }
