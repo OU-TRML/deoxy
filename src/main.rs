@@ -17,10 +17,10 @@ fn main() {
 			)
 		).get_matches();
 
-	// let config = matches.value_of("config").unwrap_or("default.conf");
+	let config = matches.value_of("config").map(|file| deoxy::config::Config::from_path_string(file).ok().unwrap_or_default()).unwrap_or_default();
 
 	match matches.subcommand_name() {
-		Some("run") => deoxy::main(),
+		Some("run") => deoxy::main(config),
 		None => {},
 		_ => unreachable!()
 	}
