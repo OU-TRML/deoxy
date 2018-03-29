@@ -1,3 +1,5 @@
+use config::MotorSpec;
+
 use motion::Motor;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
@@ -83,6 +85,39 @@ impl Slave {
 					self.queue.push_front(action);
 				}
 			}
+		}
+	}
+
+}
+
+pub struct Coordinator {
+	channels: Vec<mpsc::Sender<Action>>
+}
+
+impl From<Vec<MotorSpec>> for Coordinator {
+
+	///
+	///
+	/// #Notes
+	/// This method will spin up child threads and start `Slave`s looping (which is why it moves its argument).
+	/// Once it has been used, the motors *will* be receiving messages immediately.
+	///
+	/// The message sent to the motor is simply `Action::Close`, so that the motor immediately goes to the closed position if it is not already.
+	/// #Panics
+	/// This method will `panic!` if sending the an `Action::Close` to the child thread fails.
+	fn from(motors: Vec<MotorSpec>) -> Self {
+		Self {
+			channels: motors.iter().map(|spec| {
+				let pin = spec.get_pin();
+				let (period, min, max) = (Duration::from_millis(spec.get_period()), Duration::new(0, spec.get_min() * 1000), Duration::new(0, spec.get_max() * 1000));
+				Slave::create_with_channel(pin, period, min..max)
+			}).map(move |(slave, maw)| {
+				let _child = thread::spawn(move || {
+					slave._loop();
+				});
+				let _ = maw.send(Action::Close).unwrap(); // TODO: Error handling
+				maw
+			}).collect::<Vec<_>>()
 		}
 	}
 
