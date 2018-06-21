@@ -46,10 +46,10 @@ impl Angle {
     /// # use deoxy::motion::Angle;
     /// use std::f64::consts::PI;
     /// let half = PI;
-    /// let angle = Angle::with_measure_rad(half);
+    /// let angle = Angle::with_rad_measure(half);
     /// assert_eq!(angle.measure(), 180.0);
     /// ```
-    pub fn with_measure_rad(rad: f64) -> Self {
+    pub fn with_rad_measure(rad: f64) -> Self {
         Self {
             measure: deg_from_rad(rad),
         }
