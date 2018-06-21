@@ -187,6 +187,8 @@ impl<'a> From<&'a [MotorSpec]> for Coordinator {
 }
 
 impl Drop for Coordinator {
+    /// When a Coordinator goes out of scope, it sends `Action::Stop` through all of its channels,
+    /// closing all registered motors and clearing their queues.
     fn drop(&mut self) {
         while let Some(channel) = self.channels.pop() {
             channel.send(Action::Stop).unwrap();
