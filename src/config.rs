@@ -1,56 +1,28 @@
 //! Handles user-given configuration: motor types, pins, etc.
 
-use std::error::Error as StdError;
-use std::fmt;
 use std::fs::File;
 use std::io::{Error as IoError, Read};
 use std::path::Path;
 use std::str::FromStr;
 
+use failure::Error;
 use toml;
 
-/// Represents a deserialization error.
-#[derive(Debug)]
-pub enum Error {
+/// Represents a configuration deserialization error.
+#[derive(Debug, Fail)]
+pub enum ConfigError {
     /// An error occured while parsing a TOML string.
-    TomlError(toml::de::Error),
+    #[fail(display = "TOML error: {}", error)]
+    TomlError {
+        /// The underlying TOML deserialization error (cause).
+        error: toml::de::Error,
+    },
     /// An I/O error occured.
-    IoError(IoError),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}: {}",
-            match self {
-                Error::TomlError(_) => "TOML parse error",
-                Error::IoError(_) => "I/O error",
-            },
-            self.description()
-        )
-    }
-}
-
-impl From<toml::de::Error> for Error {
-    fn from(error: toml::de::Error) -> Self {
-        Error::TomlError(error)
-    }
-}
-
-impl From<IoError> for Error {
-    fn from(error: IoError) -> Self {
-        Error::IoError(error)
-    }
-}
-
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match self {
-            Error::TomlError(err) => err.description(),
-            Error::IoError(err) => err.description(),
-        }
-    }
+    #[fail(display = "I/O error: {}", error)]
+    IoError {
+        /// The underlying I/O error (cause).
+        error: IoError,
+    },
 }
 
 /// Holds the configuration for the given instance.

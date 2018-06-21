@@ -10,6 +10,8 @@
 use std::thread;
 use std::time::Duration;
 
+#[macro_use]
+extern crate failure;
 extern crate gpio;
 #[macro_use]
 extern crate serde_derive;
