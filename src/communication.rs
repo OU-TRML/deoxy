@@ -83,8 +83,11 @@ impl Slave {
                 println!("Set motor neutral at instant {:?}", Instant::now());
             }
             Action::Open(length) => {
-                self.motor.lock().unwrap().set_orthogonal();
-                println!("Set motor orthogonal at instant {:?}", Instant::now());
+                {
+                    let mut motor = self.motor.lock().unwrap();
+                    motor.set_orthogonal();
+                    println!("Set motor orthogonal at instant {:?}", Instant::now());
+                }
                 self.handle(Action::ScheduleClose(length));
             }
             Action::ScheduleOpen(delay, length) => {
@@ -96,12 +99,15 @@ impl Slave {
                     .push_back((Instant::now() + delay, Action::Close));
             }
             Action::SetAngle(angle, length) => {
-                self.motor.lock().unwrap().set_angle(angle).unwrap();
-                println!(
-                    "Set motor angle to {} at instant {:?}",
-                    angle,
-                    Instant::now()
-                );
+                {
+                    let mut motor = self.motor.lock().unwrap();
+                    motor.set_angle(angle).unwrap();
+                    println!(
+                        "Set motor angle to {} at instant {:?}",
+                        angle,
+                        Instant::now()
+                    );
+                }
                 self.handle(Action::ScheduleClose(length));
             }
         }
