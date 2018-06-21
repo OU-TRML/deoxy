@@ -23,7 +23,7 @@ pub struct MotorSpec {
 }
 
 impl MotorSpec {
-	/// Returns the pin the motor is attached to.
+    /// Returns the pin the motor is attached to.
     pub fn get_pin(&self) -> u16 {
         self.pin
     }
@@ -45,7 +45,7 @@ impl MotorSpec {
 }
 
 impl<'a> Config {
-	/// Parses the passed string into a configuration.
+    /// Parses the passed string into a configuration.
     pub fn from_str(str: &str) -> Result<Self, ()> {
         toml::from_str(str).or(Err(()))
     }

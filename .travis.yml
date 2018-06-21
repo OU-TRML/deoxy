@@ -4,9 +4,11 @@ rust:
   - beta
   - nightly
 matrix:
-  allow_failures:
-    - rust: nightly
-    - rust: beta
+  fast_finish: true
+sudo: false
+install:
+  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || rustup component add rustfmt-preview
 script:
+  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || cargo fmt --all -- --check
   - cargo build --features "stub" --verbose
   - cargo test --features "stub" --verbose

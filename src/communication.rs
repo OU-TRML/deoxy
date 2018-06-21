@@ -47,7 +47,7 @@ pub struct Slave {
 }
 
 impl Slave {
-	/// Creates a slave and communication (mpsc) channel for the given motor specs.
+    /// Creates a slave and communication (mpsc) channel for the given motor specs.
     pub fn create_with_channel(
         pin_number: u16,
         period: Duration,
@@ -136,7 +136,7 @@ impl Slave {
 /// *will* all close.
 #[derive(Debug)]
 pub struct Coordinator {
-	/// The communication channels to 
+    /// The communication channels to
     pub channels: Vec<mpsc::Sender<Action>>,
 }
 
@@ -177,9 +177,9 @@ impl<'a> From<&'a [MotorSpec]> for Coordinator {
 }
 
 impl Drop for Coordinator {
-	fn drop(&mut self) {
-		while let Some(channel) = self.channels.pop() {
-			channel.send(Action::Close).unwrap();
-		}
-	}
+    fn drop(&mut self) {
+        while let Some(channel) = self.channels.pop() {
+            channel.send(Action::Close).unwrap();
+        }
+    }
 }

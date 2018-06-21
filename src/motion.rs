@@ -124,8 +124,7 @@ impl Motor {
 
     /// Delegates to [`Pin.do_wave`](struct.Pin.html#method.do_wave)
     pub fn do_wave(&mut self) {
-        let _ = self
-            .pin
+        self.pin
             .lock()
             .unwrap()
             .do_wave(self.get_pulse_width(), self.get_period())
