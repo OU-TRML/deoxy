@@ -181,7 +181,7 @@ impl<'a> From<&'a [MotorSpec]> for Coordinator {
                     maw.send(Action::Close).unwrap(); // TODO: Error handling
                     maw
                 })
-                .collect::<Vec<_>>(),
+                .collect(),
         }
     }
 }
