@@ -1,11 +1,57 @@
 //! Handles user-given configuration: motor types, pins, etc.
 
+use std::error::Error as StdError;
+use std::fmt;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Error as IoError, Read};
 use std::path::Path;
 use std::str::FromStr;
 
 use toml;
+
+/// Represents a deserialization error.
+#[derive(Debug)]
+pub enum Error {
+    /// An error occured while parsing a TOML string.
+    TomlError(toml::de::Error),
+    /// An I/O error occured.
+    IoError(IoError),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}: {}",
+            match self {
+                Error::TomlError(_) => "TOML parse error",
+                Error::IoError(_) => "I/O error",
+            },
+            self.description()
+        )
+    }
+}
+
+impl From<toml::de::Error> for Error {
+    fn from(error: toml::de::Error) -> Self {
+        Error::TomlError(error)
+    }
+}
+
+impl From<IoError> for Error {
+    fn from(error: IoError) -> Self {
+        Error::IoError(error)
+    }
+}
+
+impl StdError for Error {
+    fn description(&self) -> &str {
+        match self {
+            Error::TomlError(err) => err.description(),
+            Error::IoError(err) => err.description(),
+        }
+    }
+}
 
 /// Holds the configuration for the given instance.
 #[derive(Debug, Deserialize, Serialize)]
@@ -91,16 +137,12 @@ impl MotorSpec {
 
 impl<'a> Config {
     /// Fetches configuration from the specified location.
-    pub fn from_path<P: AsRef<Path>>(path: &P) -> Result<Self, ()> {
-        if let Ok(mut file) = File::open(path) {
-            let mut contents = String::new();
-            match file.read_to_string(&mut contents) {
-                Ok(_) => Self::from_str(&contents),
-                _ => Err(()),
-            }
-        } else {
-            Err(())
-        }
+    pub fn from_path<P: AsRef<Path>>(path: &P) -> Result<Self, Error> {
+        let mut file = File::open(path)?;
+        let mut contents = String::new();
+        let _bytes = file.read_to_string(&mut contents)?;
+        let cfg = Self::from_str(&contents)?;
+        Ok(cfg)
     }
 
     /// All motors specified by the configuration.
@@ -110,10 +152,10 @@ impl<'a> Config {
 }
 
 impl FromStr for Config {
-    type Err = ();
+    type Err = toml::de::Error;
     /// Parses the passed TOML string into a configuration.
     fn from_str(str: &str) -> Result<Self, Self::Err> {
-        toml::from_str(str).or(Err(()))
+        toml::from_str(str)
     }
 }
 
