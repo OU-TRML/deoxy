@@ -8,6 +8,6 @@ run-remote:
 build b:
 	cargo build
 run:
-	cargo run
+	cargo run -- run
 doc docs:
 	cargo doc --open
