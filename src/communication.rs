@@ -66,6 +66,7 @@ impl Slave {
     }
 
     /// Handles all messages sent to the thread.
+    #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
     fn handle(&mut self, message: Action) {
         match message {
             // TODO: Error handling
@@ -114,9 +115,8 @@ impl Slave {
             motor.do_wave();
         });
         loop {
-            match self.rx.try_recv() {
-                Ok(action) => self.handle(action),
-                _ => {} // TODO: Handle error
+            if let Ok(action) = self.rx.try_recv() {
+                self.handle(action);
             }
             if let Some(action) = self.queue.pop_front() {
                 let now = Instant::now();

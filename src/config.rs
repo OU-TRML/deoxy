@@ -3,6 +3,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::str::FromStr;
 
 use toml;
 
@@ -45,11 +46,6 @@ impl MotorSpec {
 }
 
 impl<'a> Config {
-    /// Parses the passed string into a configuration.
-    pub fn from_str(str: &str) -> Result<Self, ()> {
-        toml::from_str(str).or(Err(()))
-    }
-
     /// Fetches configuration from the specified location.
     pub fn from_path<P: AsRef<Path>>(path: &P) -> Result<Self, ()> {
         if let Ok(mut file) = File::open(path) {
@@ -66,6 +62,14 @@ impl<'a> Config {
     /// All motors specified by the configuration.
     pub fn motors(&'a self) -> &'a [MotorSpec] {
         &self.motors
+    }
+}
+
+impl FromStr for Config {
+    type Err = ();
+    /// Parses the passed string into a configuration.
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        toml::from_str(str).or(Err(()))
     }
 }
 

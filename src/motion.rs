@@ -100,8 +100,8 @@ impl Motor {
                 / ((self.angle_range.end - self.angle_range.start).measure() as u32);
             let (seconds, nanoseconds) = (ratio.as_secs(), ratio.subsec_nanos());
             self.pulse_width = Duration::new(
-                (seconds as f64 * angle.measure()).round() as u64,
-                (nanoseconds as f64 * angle.measure()).round() as u32,
+                ((seconds as f64) * angle.measure()).round() as u64,
+                (f64::from(nanoseconds) * angle.measure()).round() as u32,
             );
             Ok(())
         }
@@ -109,7 +109,7 @@ impl Motor {
 
     /// Sets the motor to the "zero" position.
     pub fn set_orthogonal(&mut self) {
-        let _ = self.set_angle(Angle::with_measure(0.0)).unwrap();
+        self.set_angle(Angle::with_measure(0.0)).unwrap();
     }
 
     /// Gets the currently-set pulse width.
