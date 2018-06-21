@@ -111,7 +111,7 @@ impl<'a> Config {
 
 impl FromStr for Config {
     type Err = ();
-    /// Parses the passed string into a configuration.
+    /// Parses the passed TOML string into a configuration.
     fn from_str(str: &str) -> Result<Self, Self::Err> {
         toml::from_str(str).or(Err(()))
     }
@@ -119,6 +119,15 @@ impl FromStr for Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Self::from_str(include_str!("../config-example.toml")).unwrap() // TODO: Possibly handle error?
+        Self::from_str(include_str!("../config-example.toml")).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use Config;
+    #[test]
+    fn test_default_config() {
+        let _cfg = Config::default();
     }
 }
