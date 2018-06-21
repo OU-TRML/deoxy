@@ -56,7 +56,7 @@ impl Angle {
     }
     /// Returns the measure of this angle (in degrees; for radians, see
     /// [`rad_measure`](#method.rad_measure)).
-    pub fn measure(&self) -> f64 {
+    pub fn measure(self) -> f64 {
         self.measure
     }
     /// Returns the measure of this angle in radians.
@@ -71,7 +71,7 @@ impl Angle {
     /// let unit = Angle::with_measure(360.0);
     /// assert_eq!(unit.rad_measure(), 2.0 * PI);
     /// ```
-    pub fn rad_measure(&self) -> f64 {
+    pub fn rad_measure(self) -> f64 {
         rad_from_deg(self.measure)
     }
 

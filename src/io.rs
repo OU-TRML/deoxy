@@ -57,7 +57,10 @@ pub struct Pin {
 }
 
 impl Pin {
-    #[cfg_attr(feature = "stub", doc = "Constructs a new `Pin` managing the GPIO pin `number`.")]
+    #[cfg_attr(
+        feature = "stub",
+        doc = "Constructs a new `Pin` managing the GPIO pin `number`."
+    )]
     #[cfg(feature = "stub")]
     pub fn new(number: u16) -> Self {
         Self {
