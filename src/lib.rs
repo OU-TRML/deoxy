@@ -5,15 +5,17 @@ extern crate gpio;
 extern crate serde_derive;
 extern crate toml;
 
-pub mod io;
-pub mod motion;
+mod angle;
 pub mod communication;
 pub mod config;
+pub mod io;
+pub mod motion;
 
-#[allow(unused_imports)]
-use io::{Pin, GpioOutputStub};
-use communication::Coordinator;
+use angle::Angle;
+use communication::{Action, Coordinator};
 use config::Config;
+#[allow(unused_imports)]
+use io::{GpioOutputStub, Pin};
 
 pub fn main(config: Config) {
 	let mgr = Coordinator::from(config.get_motors());
