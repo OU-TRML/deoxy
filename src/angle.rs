@@ -24,12 +24,31 @@ fn deg_from_rad(rad: f64) -> f64 {
 impl Angle {
     /// Creates a new angle with the given measure (in degrees; for radians, see
     /// [`with_rad_measure`](#method.with_rad_measure)).
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use deoxy::motion::Angle;
+    /// let eighth = 22.5;
+    /// let angle = Angle::with_measure(eighth);
+    /// assert_eq!(angle.measure(), eighth);
+    /// ```
     pub fn with_measure(measure: f64) -> Self {
         Self { measure }
     }
     /// Creates a new angle with the given measure (in radians).
     ///
     /// For degrees, see [`with_measure`](#method.with_measure).
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use deoxy::motion::Angle;
+    /// use std::f64::consts::PI;
+    /// let half = PI;
+    /// let angle = Angle::with_measure_rad(half);
+    /// assert_eq!(angle.measure(), 180.0);
+    /// ```
     pub fn with_measure_rad(rad: f64) -> Self {
         Self {
             measure: deg_from_rad(rad),
@@ -43,8 +62,30 @@ impl Angle {
     /// Returns the measure of this angle in radians.
     ///
     /// For degrees, see [`measure`](#method.measure).
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use deoxy::motion::Angle;
+    /// use std::f64::consts::PI;
+    /// let unit = Angle::with_measure(360.0);
+    /// assert_eq!(unit.rad_measure(), 2.0 * PI);
+    /// ```
     pub fn rad_measure(&self) -> f64 {
         rad_from_deg(self.measure)
+    }
+
+    /// Returns an angle with identically zero measure.
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use deoxy::motion::Angle;
+    /// let zero = Angle::zero();
+    /// assert_eq!(zero.measure(), 0.0);
+    /// assert_eq!(zero.rad_measure(), 0.0);
+    /// ```
+    pub fn zero() -> Self {
+        Self::with_measure(0.0)
     }
 }
 

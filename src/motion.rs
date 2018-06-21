@@ -7,7 +7,7 @@ use std::time::Duration;
 #[allow(unused_imports)]
 use io::{GpioOutputStub, Pin};
 
-use angle::Angle;
+pub use angle::Angle;
 
 /// Represents the range of angles that a motor can attain.
 #[derive(Clone, Copy, Debug)]
@@ -19,11 +19,28 @@ pub enum MotorRange {
     /// Represents a motor range of 45 degrees.
     Quarter,
     /// Represents a custom motor range.
+    ///
+    /// The associated angle is the upper limit.
     Other(Angle),
 }
 
 impl MotorRange {
     /// Returns the maximum angle the motor can attain.
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use deoxy::motion::{Angle, MotorRange};
+    /// let full = MotorRange::Full;
+    /// assert_eq!(full.max_value().measure(), 180.0);
+    /// let half = MotorRange::Half;
+    /// assert_eq!(half.max_value().measure(), 90.0);
+    /// let quarter = MotorRange::Quarter;
+    /// assert_eq!(quarter.max_value().measure(), 45.0);
+    /// let custom_max = Angle::with_measure(10.0);
+    /// let custom = MotorRange::Other(custom_max);
+    /// assert_eq!(custom.max_value().measure(), custom_max.measure());
+    /// ```
     pub fn max_value(&self) -> Angle {
         match *self {
             MotorRange::Full => Angle::with_measure(180.0),
@@ -34,6 +51,16 @@ impl MotorRange {
     }
 
     /// Returns the minimum angle the motor can attain.
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use deoxy::motion::{Angle, MotorRange};
+    /// let ranges = [MotorRange::Full, MotorRange::Half, MotorRange::Quarter];
+    /// for range in &ranges {
+    ///     assert_eq!(range.min_value(), Angle::zero());
+    /// }
+    /// ```
     pub fn min_value(&self) -> Angle {
         Angle::default()
     }
