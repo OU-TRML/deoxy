@@ -25,21 +25,65 @@ pub struct MotorSpec {
 
 impl MotorSpec {
     /// Returns the pin the motor is attached to.
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use std::str::FromStr;
+    /// # use deoxy::config::{Config, MotorSpec};
+    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let motors = cfg.motors();
+    /// let motor = &motors[0];
+    /// assert_eq!(motor.get_pin(), 17);
+    /// ```
     pub fn get_pin(&self) -> u16 {
         self.pin
     }
 
     /// Returns the minimum useful duty cycle.
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use std::str::FromStr;
+    /// # use deoxy::config::{Config, MotorSpec};
+    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let motors = cfg.motors();
+    /// let motor = &motors[0];
+    /// assert_eq!(motor.get_min(), 1);
+    /// ```
     pub fn get_min(&self) -> u32 {
         self.range[0]
     }
 
     /// Returns the maximum useful duty cycle.
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use std::str::FromStr;
+    /// # use deoxy::config::{Config, MotorSpec};
+    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let motors = cfg.motors();
+    /// let motor = &motors[0];
+    /// assert_eq!(motor.get_max(), 2);
+    /// ```
     pub fn get_max(&self) -> u32 {
-        self.range[0]
+        self.range[1]
     }
 
     /// Returns the period of the motor.
+    ///
+    /// # Examples
+    /// ```
+    /// # extern crate deoxy;
+    /// # use std::str::FromStr;
+    /// # use deoxy::config::{Config, MotorSpec};
+    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let motors = cfg.motors();
+    /// let motor = &motors[0];
+    /// assert_eq!(motor.get_period(), 20);
+    /// ```
     pub fn get_period(&self) -> u64 {
         self.period
     }
