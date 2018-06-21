@@ -1,3 +1,5 @@
+//! Contains components essential for communication between threads and to motors, etc.
+
 use config::MotorSpec;
 
 use motion::Motor;
@@ -8,8 +10,14 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use angle::Angle;
+
+/// Represents a delay to rest before taking (or completing) an action.
 pub type Delay = Duration;
 
+/// Encodes an action that a motor can take.
+// We don't want duplicate actions, so we disable Copy and make move semantics matter for this.
+#[allow(missing_copy_implementations)]
+#[derive(Debug)]
 pub enum Action {
     /// Stops everything that's going on, clears the queue, and closes the tube.
     Stop,
@@ -25,12 +33,17 @@ pub enum Action {
     SetAngle(Angle, Duration),
 }
 
+/// An future action that is expected to happen.
+///
+/// The `Instant` associated with this pair is when the action is expected to occur.
 pub type ScheduledAction = (Instant, Action);
 
+/// Manages actions and messaging (including threading) for a single motor.
+#[derive(Debug)]
 pub struct Slave {
-	motor: Arc<Mutex<Motor>>,
-	rx: mpsc::Receiver<Action>,
-	queue: VecDeque<ScheduledAction>
+    motor: Arc<Mutex<Motor>>,
+    rx: mpsc::Receiver<Action>,
+    queue: VecDeque<ScheduledAction>,
 }
 
 impl Slave {
@@ -117,11 +130,51 @@ impl Slave {
     }
 }
 
+/// The entry point for all messages sent to motors.
+///
+/// This struct owns all the communication channels. Don't let it go out of scope, or the motors
+/// *will* all close.
+#[derive(Debug)]
 pub struct Coordinator {
-	channels: Vec<mpsc::Sender<Action>>
+	/// The communication channels to 
+    pub channels: Vec<mpsc::Sender<Action>>,
 }
 
-impl From<Vec<MotorSpec>> for Coordinator {
+impl<'a> From<&'a [MotorSpec]> for Coordinator {
+    ///
+    ///
+    /// #Notes
+    /// This method will spin up child threads and start `Slave`s looping (which is why it moves its
+    /// argument). Once it has been used, the motors *will* be receiving messages immediately.
+    ///
+    /// The message sent to the motor is simply `Action::Close`, so that the motor immediately goes
+    /// to the closed position if it is not already.
+    /// #Panics
+    /// This method will `panic!` if sending the `Action::Close` message to the child thread fails.
+    fn from(motors: &'a [MotorSpec]) -> Self {
+        Self {
+            channels: motors
+                .iter()
+                .map(|spec| {
+                    let pin = spec.get_pin();
+                    let (period, min, max) = (
+                        Duration::from_millis(spec.get_period()),
+                        Duration::new(0, spec.get_min() * 1000),
+                        Duration::new(0, spec.get_max() * 1000),
+                    );
+                    Slave::create_with_channel(pin, period, min..max)
+                })
+                .map(move |(slave, maw)| {
+                    let _child = thread::spawn(move || {
+                        slave._loop();
+                    });
+                    maw.send(Action::Close).unwrap(); // TODO: Error handling
+                    maw
+                })
+                .collect::<Vec<_>>(),
+        }
+    }
+}
 
 impl Drop for Coordinator {
 	fn drop(&mut self) {

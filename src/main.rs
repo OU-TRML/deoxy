@@ -5,7 +5,7 @@ use clap::AppSettings as settings;
 extern crate deoxy;
 
 fn main() {
-	let matches = clap_app!(deoxy =>
+    let matches = clap_app!(deoxy =>
 		(version: "0.2.0")
 		(author: "Alex Hamilton <alex.hamilton@ou.edu>")
 		(about: "For all your buffer exchange needs!")
@@ -17,11 +17,14 @@ fn main() {
 			)
 		).get_matches();
 
-	let config = matches.value_of("config").map(|file| deoxy::config::Config::from_path_string(file).ok().unwrap_or_default()).unwrap_or_default();
+    let config = matches
+        .value_of("CONFIG")
+        .and_then(|ref file| deoxy::config::Config::from_path(file).ok())
+        .unwrap_or_default();
 
-	match matches.subcommand_name() {
-		Some("run") => deoxy::main(config),
-		None => {},
-		_ => unreachable!()
-	}
+    match matches.subcommand_name() {
+        Some("run") => deoxy::main(config),
+        None => {}
+        _ => unreachable!(),
+    }
 }

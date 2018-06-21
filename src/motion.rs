@@ -1,21 +1,25 @@
-use std::time::Duration;
+//! Components related to motors and their movement.
+
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 #[allow(unused_imports)]
-use io::{Pin, GpioOutputStub};
+use io::{GpioOutputStub, Pin};
 
 use angle::Angle;
 
+/// Represents the range of angles that a motor can attain.
+#[derive(Clone, Copy, Debug)]
 pub enum MotorRange {
-	/// Represents a motor range of 180 degrees.
-	Full,
-	/// Represents a motor range of 90 degrees.
-	Half,
-	/// Represents a motor range of 45 degrees.
-	Quarter,
-	/// Represents a custom motor range (in degrees).
-	Other(Angle)
+    /// Represents a motor range of 180 degrees.
+    Full,
+    /// Represents a motor range of 90 degrees.
+    Half,
+    /// Represents a motor range of 45 degrees.
+    Quarter,
+    /// Represents a custom motor range.
+    Other(Angle),
 }
 
 impl MotorRange {
@@ -41,23 +45,24 @@ impl MotorRange {
 }
 
 /// Represents a motor mounted on the board.
+#[derive(Debug)]
 pub struct Motor {
-	/// The underlying `Pin` instance which manages the state of the GPIO pin to which the motor is attached.
-	pin: Arc<Mutex<Pin>>,
-	/// The current (cached) pulse width for the motor signal.
-	pulse_width: Duration,
-	/// The motor's constant, characterisic period.
-	period: Duration,
-	/// The range of pulse widths this motor supports (used to calculate appropriate widths for neutral and anti-neutral positions).
-	signal_range: Range<Duration>,
-	/// The range of angles to which this motor may be rotated
-	angle_range: Range<Angle>
+    /// The underlying `Pin` instance which manages the state of the GPIO pin to which the motor is attached.
+    pin: Arc<Mutex<Pin>>,
+    /// The current (cached) pulse width for the motor signal.
+    pulse_width: Duration,
+    /// The motor's constant, characterisic period.
+    period: Duration,
+    /// The range of pulse widths this motor supports (used to calculate appropriate widths for neutral and anti-neutral positions).
+    signal_range: Range<Duration>,
+    /// The range of angles to which this motor may be rotated
+    angle_range: Range<Angle>,
 }
 
 impl Default for MotorRange {
-	fn default() -> Self {
-		MotorRange::Full
-	}
+    fn default() -> Self {
+        MotorRange::Full
+    }
 }
 
 // TODO: From methods
