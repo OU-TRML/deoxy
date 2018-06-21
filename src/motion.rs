@@ -100,7 +100,7 @@ impl Motor {
     ///
     /// This method will also instantiate an underlying `Pin`.
     ///
-    /// The resulting object will have a pulse width of 0 until one is specified or the [`_loop`](#method._loop) method automatically generates one (if applicable).
+    /// The resulting object will have a pulse width of 0 until one is specified or the [`_loop`](../communication/struct.Slave.html#method._loop) method automatically generates one (if applicable).
     pub fn new(pin_number: u16, period: Duration, signal_range: Range<Duration>) -> Self {
         Self {
             pin: Arc::new(Mutex::new(Pin::new(pin_number))),
@@ -118,7 +118,7 @@ impl Motor {
 
     /// Sets the motor angle.
     /// # Errors
-    /// If the given `angle` doesn't lie within [`angle_range`](#field.angle_range), this method returns Err(()) and nothing happens.
+    /// If the given `angle` doesn't lie within `angle_range`, this method returns Err(()) and nothing happens.
     pub fn set_angle(&mut self, angle: Angle) -> Result<(), ()> {
         if angle < self.angle_range.start || angle > self.angle_range.end {
             Err(())
@@ -149,7 +149,7 @@ impl Motor {
         self.period
     }
 
-    /// Delegates to [`Pin.do_wave`](struct.Pin.html#method.do_wave)
+    /// Delegates to [`Pin.do_wave`](../io/struct.Pin.html#method.do_wave)
     pub fn do_wave(&mut self) {
         self.pin
             .lock()
