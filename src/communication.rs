@@ -73,7 +73,11 @@ impl Slave {
             Action::Stop => {
                 self.motor.lock().unwrap().set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
-            } // TODO: Clear queue
+                {
+                    let _queue = self.queue.drain(..);
+                }
+                assert_eq!(self.queue.len(), 0);
+            }
             Action::Close => {
                 self.motor.lock().unwrap().set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
