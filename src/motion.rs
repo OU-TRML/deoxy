@@ -116,7 +116,7 @@ impl Motor {
         self.pulse_width = (self.signal_range.start + self.signal_range.end) / 2;
     }
 
-    /// Sets the motor angle (in degrees, unfortunately).
+    /// Sets the motor angle.
     /// # Errors
     /// If the given `angle` doesn't lie within [`angle_range`](#field.angle_range), this method returns Err(()) and nothing happens.
     pub fn set_angle(&mut self, angle: Angle) -> Result<(), ()> {
