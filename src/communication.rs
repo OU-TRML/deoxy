@@ -179,7 +179,7 @@ impl<'a> From<&'a [MotorSpec]> for Coordinator {
 impl Drop for Coordinator {
     fn drop(&mut self) {
         while let Some(channel) = self.channels.pop() {
-            channel.send(Action::Close).unwrap();
+            channel.send(Action::Stop).unwrap();
         }
     }
 }
