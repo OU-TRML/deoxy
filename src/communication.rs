@@ -173,15 +173,13 @@ impl<'a> From<&'a [MotorSpec]> for Coordinator {
                         Duration::new(0, spec.get_max() * 1000),
                     );
                     Slave::create_with_channel(pin, period, min..max)
-                })
-                .map(move |(slave, maw)| {
+                }).map(move |(slave, maw)| {
                     let _child = thread::spawn(move || {
                         slave._loop();
                     });
                     maw.send(Action::Close).unwrap(); // TODO: Error handling
                     maw
-                })
-                .collect(),
+                }).collect(),
         }
     }
 }

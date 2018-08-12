@@ -43,15 +43,13 @@ pub fn main(config: Config) {
         .send(Action::SetAngle(
             Angle::with_measure(180.0),
             Duration::from_millis(10_000),
-        ))
-        .unwrap();
+        )).unwrap();
     thread::sleep(Duration::from_millis(15_000));
     mgr.channels[0]
         .send(Action::SetAngle(
             Angle::with_measure(0.0),
             Duration::from_millis(10_000),
-        ))
-        .unwrap();
+        )).unwrap();
     thread::sleep(Duration::from_millis(15_000));
     // mgr.channels[0].send(Action::ScheduleOpen(Duration::from_millis(500), Duration::from_millis(2_000))).unwrap();
 }
