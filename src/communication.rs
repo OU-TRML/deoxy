@@ -2,7 +2,7 @@
 
 use config::MotorSpec;
 
-use motion::Motor;
+use motion::{Motor, MotorRange};
 use std::collections::VecDeque;
 use std::ops::Range;
 use std::sync::{mpsc, Arc, Mutex};
@@ -41,28 +41,75 @@ pub type ScheduledAction = (Instant, Action);
 /// Manages actions and messaging (including threading) for a single motor.
 #[derive(Debug)]
 pub struct Slave {
-    motor: Arc<Mutex<Motor>>,
     rx: mpsc::Receiver<Action>,
     queue: VecDeque<ScheduledAction>,
+    pulse_width: Option<Arc<Mutex<Duration>>>,
+    signal_range: Range<Duration>,
+    period: Duration,
+    pin: u16,
 }
 
 impl Slave {
     /// Creates a slave and communication (mpsc) channel for the given motor specs.
-    pub fn create_with_channel(
-        pin_number: u16,
-        period: Duration,
-        signal_range: Range<Duration>,
-    ) -> (Self, mpsc::Sender<Action>) {
+    pub fn create_with_channel(spec: MotorSpec) -> (Self, mpsc::Sender<Action>) {
+        let pin = spec.get_pin();
+        let (period, min, max) = (
+            Duration::from_millis(spec.get_period()),
+            Duration::new(0, spec.get_min() * 1000),
+            Duration::new(0, spec.get_max() * 1000),
+        );
         let (tx, rx) = mpsc::channel();
-        let motor = Arc::new(Mutex::new(Motor::new(pin_number, period, signal_range)));
         (
             Self {
                 rx,
-                motor,
                 queue: VecDeque::new(),
+                pulse_width: None,
+                signal_range: min..max,
+                period,
+                pin,
             },
             tx,
         )
+    }
+
+    /// Sets the motor to the neutral position.
+    pub fn set_neutral(&mut self) {
+        let pulse_width = self
+            .pulse_width
+            .clone()
+            .expect("Motor moved while not looping.");
+        let mut pulse_width = pulse_width.lock().unwrap();
+        *pulse_width = (self.signal_range.start + self.signal_range.end) / 2;
+    }
+
+    /// Sets the motor angle.
+    /// # Errors
+    /// If the given `angle` doesn't lie within `angle_range`, this method returns Err(()) and nothing happens.
+    pub fn set_angle(&mut self, angle: Angle) -> Result<(), ()> {
+        // TODO: Allow configuration.
+        let angle_range = MotorRange::default().to_range();
+        if angle < angle_range.start || angle > angle_range.end {
+            Err(())
+        } else {
+            let ratio = (self.signal_range.end - self.signal_range.start)
+                / ((angle_range.end - angle_range.start).measure() as u32);
+            let (seconds, nanoseconds) = (ratio.as_secs(), ratio.subsec_nanos());
+            let pulse_width = self
+                .pulse_width
+                .clone()
+                .expect("Motor moved while not looping.");
+            let mut pulse_width = pulse_width.lock().unwrap();
+            *pulse_width = Duration::new(
+                ((seconds as f64) * angle.measure()).round() as u64,
+                (f64::from(nanoseconds) * angle.measure()).round() as u32,
+            );
+            Ok(())
+        }
+    }
+
+    /// Sets the motor to the "zero" position.
+    pub fn set_orthogonal(&mut self) {
+        self.set_angle(Angle::with_measure(0.0)).unwrap();
     }
 
     /// Handles all messages sent to the thread.
@@ -71,7 +118,7 @@ impl Slave {
         match message {
             // TODO: Error handling
             Action::Stop => {
-                self.motor.lock().unwrap().set_neutral();
+                self.set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
                 {
                     let _queue = self.queue.drain(..);
@@ -79,15 +126,12 @@ impl Slave {
                 assert_eq!(self.queue.len(), 0);
             }
             Action::Close => {
-                self.motor.lock().unwrap().set_neutral();
+                self.set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
             }
             Action::Open(length) => {
-                {
-                    let mut motor = self.motor.lock().unwrap();
-                    motor.set_orthogonal();
-                    println!("Set motor orthogonal at instant {:?}", Instant::now());
-                }
+                self.set_orthogonal();
+                println!("Set motor orthogonal at instant {:?}", Instant::now());
                 self.handle(Action::ScheduleClose(length));
             }
             Action::ScheduleOpen(delay, length) => {
@@ -99,15 +143,12 @@ impl Slave {
                     .push_back((Instant::now() + delay, Action::Close));
             }
             Action::SetAngle(angle, length) => {
-                {
-                    let mut motor = self.motor.lock().unwrap();
-                    motor.set_angle(angle).unwrap();
-                    println!(
-                        "Set motor angle to {} at instant {:?}",
-                        angle,
-                        Instant::now()
-                    );
-                }
+                self.set_angle(angle).unwrap();
+                println!(
+                    "Set motor angle to {} at instant {:?}",
+                    angle,
+                    Instant::now()
+                );
                 self.handle(Action::ScheduleClose(length));
             }
         }
@@ -119,9 +160,9 @@ impl Slave {
     /// You **must** call this method for this struct to be useful at all.
     pub fn _loop(mut self) {
         // TODO: Handle timing as well (instead of performing everything on the next tick)
-        let motor = Arc::clone(&self.motor);
+        let mut motor = Motor::new(self.pin, self.period);
+        self.pulse_width = Some(motor.get_pulse_width());
         let _child = thread::spawn(move || loop {
-            let mut motor = motor.lock().unwrap();
             motor.do_wave();
         });
         loop {
@@ -165,21 +206,15 @@ impl<'a> From<&'a [MotorSpec]> for Coordinator {
         Self {
             channels: motors
                 .iter()
-                .map(|spec| {
-                    let pin = spec.get_pin();
-                    let (period, min, max) = (
-                        Duration::from_millis(spec.get_period()),
-                        Duration::new(0, spec.get_min() * 1000),
-                        Duration::new(0, spec.get_max() * 1000),
-                    );
-                    Slave::create_with_channel(pin, period, min..max)
-                }).map(move |(slave, maw)| {
+                .map(|spec| Slave::create_with_channel(spec.clone()))
+                .map(move |(slave, maw)| {
                     let _child = thread::spawn(move || {
                         slave._loop();
                     });
                     maw.send(Action::Close).unwrap(); // TODO: Error handling
                     maw
-                }).collect(),
+                })
+                .collect(),
         }
     }
 }

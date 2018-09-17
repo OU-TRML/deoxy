@@ -75,13 +75,13 @@ impl MotorRange {
 #[derive(Debug)]
 pub struct Motor {
     /// The underlying `Pin` instance which manages the state of the GPIO pin to which the motor is attached.
-    pin: Arc<Mutex<Pin>>,
-    /// The current (cached) pulse width for the motor signal.
-    pulse_width: Duration,
+    pin: Pin,
+    /// The current pulse width for the motor signal.
+    pulse_width: Arc<Mutex<Duration>>,
     /// The motor's constant, characterisic period.
     period: Duration,
     /// The range of pulse widths this motor supports (used to calculate appropriate widths for neutral and anti-neutral positions).
-    signal_range: Range<Duration>,
+    // signal_range: Range<Duration>,
     /// The range of angles to which this motor may be rotated
     angle_range: Range<Angle>,
 }
@@ -101,47 +101,19 @@ impl Motor {
     /// This method will also instantiate an underlying `Pin`.
     ///
     /// The resulting object will have a pulse width of 0 until one is specified or the [`_loop`](../communication/struct.Slave.html#method._loop) method automatically generates one (if applicable).
-    pub fn new(pin_number: u16, period: Duration, signal_range: Range<Duration>) -> Self {
+    pub fn new(pin_number: u16, period: Duration) -> Self {
         Self {
-            pin: Arc::new(Mutex::new(Pin::new(pin_number))),
+            pin: Pin::new(pin_number),
             period,
-            pulse_width: Duration::new(0, 0),
-            signal_range,
+            pulse_width: Arc::new(Mutex::new(Duration::new(0, 0))),
+            // signal_range,
             angle_range: MotorRange::default().to_range(),
         }
     }
 
-    /// Sets the motor to the neutral position.
-    pub fn set_neutral(&mut self) {
-        self.pulse_width = (self.signal_range.start + self.signal_range.end) / 2;
-    }
-
-    /// Sets the motor angle.
-    /// # Errors
-    /// If the given `angle` doesn't lie within `angle_range`, this method returns Err(()) and nothing happens.
-    pub fn set_angle(&mut self, angle: Angle) -> Result<(), ()> {
-        if angle < self.angle_range.start || angle > self.angle_range.end {
-            Err(())
-        } else {
-            let ratio = (self.signal_range.end - self.signal_range.start)
-                / ((self.angle_range.end - self.angle_range.start).measure() as u32);
-            let (seconds, nanoseconds) = (ratio.as_secs(), ratio.subsec_nanos());
-            self.pulse_width = Duration::new(
-                ((seconds as f64) * angle.measure()).round() as u64,
-                (f64::from(nanoseconds) * angle.measure()).round() as u32,
-            );
-            Ok(())
-        }
-    }
-
-    /// Sets the motor to the "zero" position.
-    pub fn set_orthogonal(&mut self) {
-        self.set_angle(Angle::with_measure(0.0)).unwrap();
-    }
-
     /// Gets the currently-set pulse width.
-    pub fn get_pulse_width(&self) -> Duration {
-        self.pulse_width
+    pub fn get_pulse_width(&self) -> Arc<Mutex<Duration>> {
+        Arc::clone(&self.pulse_width)
     }
 
     /// Gets the characteristic period of this motor.
@@ -151,10 +123,10 @@ impl Motor {
 
     /// Delegates to [`Pin.do_wave`](../io/struct.Pin.html#method.do_wave)
     pub fn do_wave(&mut self) {
-        self.pin
-            .lock()
-            .unwrap()
-            .do_wave(self.get_pulse_width(), self.get_period())
-            .unwrap();
+        let pulse_width = self.get_pulse_width();
+        let width = pulse_width.lock().unwrap().clone();
+        let period = self.get_period();
+        drop(pulse_width);
+        self.pin.do_wave(width, period).unwrap();
     }
 }

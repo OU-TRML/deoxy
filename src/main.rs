@@ -15,7 +15,8 @@ fn main() {
 			// (about: "starts the deoxy daemon, or aborts if another instance is detected")
 			(about: "runs deoxy::main()")
 			)
-		).get_matches();
+		)
+    .get_matches();
 
     let config = matches
         .value_of("CONFIG")
