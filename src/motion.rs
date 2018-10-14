@@ -1,8 +1,8 @@
-//! Components related to motors and their movement.
+//! Components related to motors, pumps, and their movement.
 
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[allow(unused_imports)]
 use io::{GpioOutputStub, Pin};
@@ -128,5 +128,72 @@ impl Motor {
         let period = self.get_period();
         drop(pulse_width);
         self.pin.do_wave(width, period).unwrap();
+    }
+}
+
+/// Represents a direction for the master pump (either forward, backward, or off).
+///
+/// ### Notes
+/// This enum does not contain information about pump speed.
+#[derive(Clone, Copy, Debug)]
+pub enum PumpDirection {
+    /// The "forward" direction is the direction in which the sample is actively perfused.
+    Forward,
+    /// The "backward" direction is the direction in which the sample is drained.
+    Backward,
+    /// The "off" state means that the pump receives no power.
+    Off,
+}
+
+/// Represents a big 'ol pump that enables perfusion and drainage.
+///
+/// ### Notes
+/// In the canonical pump circuit, the on/off relay is normally open (off).
+/// The positive/negative relay is also normally open (positive).
+/// Powering the on/off relay causes the pump to run, either forward (± off) or backward (± on).
+#[derive(Debug)]
+pub struct Pump {
+    /// The pin corresponding to the on/off relay.
+    toggle_pin: Pin,
+    /// The pin corresponding to the positive/negative relay.
+    invert_pin: Pin,
+    /// The current direction of the pump.
+    direction: PumpDirection,
+    /// When the pin should stop running, if applicable.
+    timeout: Option<Instant>,
+}
+
+impl Pump {
+    /// Creates a new pump on the pins specified and sets it to closed.
+    pub fn new(toggle_pin_number: u16, invert_pin_number: u16) -> Self {
+        Self {
+            toggle_pin: Pin::new(toggle_pin_number),
+            invert_pin: Pin::new(invert_pin_number),
+            direction: PumpDirection::Off,
+            timeout: None,
+        }
+    }
+    /// Returns the pump's current direction.
+    pub fn get_direction(&self) -> PumpDirection {
+        self.direction
+    }
+    /// Turns off the pump and opens both relays.
+    pub fn close(&mut self) {
+        self.toggle_pin.set_low().unwrap();
+        self.invert_pin.set_low().unwrap();
+        self.direction = PumpDirection::Off;
+    }
+    /// Tells the pump to perfuse (run forward) for a given duration.
+    // TODO (#13): Make sure that the pump does not overfill the container during this duration.
+    pub fn perfuse(&mut self, len: Duration) {
+        self.invert_pin.set_low().unwrap();
+        self.toggle_pin.set_high().unwrap();
+        self.timeout = Some(Instant::now() + len);
+    }
+    /// Tells the pump to drain (run backward) for a given duration.
+    pub fn drain(&mut self, len: Duration) {
+        self.invert_pin.set_high().unwrap();
+        self.toggle_pin.set_high().unwrap();
+        self.timeout = Some(Instant::now() + len);
     }
 }
