@@ -1,4 +1,19 @@
 [[motors]]
-pin = 17
+pin = 4
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 27
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 18
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 22
 range = [553, 2520] # µs
 period = 20 # ms

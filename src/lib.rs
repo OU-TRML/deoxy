@@ -39,10 +39,24 @@ use io::{GpioOutputStub, Pin};
 pub fn main(config: Config) {
     let mgr = Coordinator::from(config.motors());
     mgr.channels[0]
-        .send(Action::ScheduleOpen(
-            Duration::from_millis(500),
+        .send(Action::Open(
             Duration::from_millis(2_000),
         ))
         .unwrap();
-    thread::sleep(Duration::from_millis(5_000));
+    mgr.channels[1]
+        .send(Action::Open(
+            Duration::from_millis(2_000),
+        ))
+        .unwrap();
+    mgr.channels[2]
+        .send(Action::Open(
+            Duration::from_millis(2_000),
+        ))
+        .unwrap();
+    mgr.channels[3]
+        .send(Action::Open(
+            Duration::from_millis(2_000),
+        ))
+        .unwrap();
+    thread::sleep(Duration::from_millis(3_000));
 }
