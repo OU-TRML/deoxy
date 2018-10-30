@@ -17,3 +17,8 @@ period = 20 # ms
 pin = 22
 range = [553, 2520] # µs
 period = 20 # ms
+
+[[motors]]
+pin = 23
+range = [553, 2520] # µs
+period = 20 # ms
