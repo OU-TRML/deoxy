@@ -29,6 +29,7 @@ pub enum ConfigError {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     motors: Vec<MotorSpec>,
+    pump: PumpSpec,
 }
 
 /// Fully specifies a motor.
@@ -49,7 +50,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_pin(), 17);
@@ -65,7 +66,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_min(), 1);
@@ -81,7 +82,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_max(), 2);
@@ -97,7 +98,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_period(), 20);
@@ -107,7 +108,17 @@ impl MotorSpec {
     }
 }
 
-impl<'a> Config {
+/// Fully specifies a pump.
+// To prevent multiple things on one pin, we fail to implement Copy.
+#[allow(missing_copy_implementations)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PumpSpec {
+    /// The pins the H-bridge uses. See the documentation for `Pump` for more details.
+    pub pins: [u16; 4],
+    // TODO (#15): type: PumpControlType (H-bridge, DPDT, whatever else)
+}
+
+impl Config {
     /// Fetches configuration from the specified location.
     pub fn from_path<P: AsRef<Path>>(path: &P) -> Result<Self, Error> {
         let mut file = File::open(path)?;
@@ -118,8 +129,13 @@ impl<'a> Config {
     }
 
     /// All motors specified by the configuration.
-    pub fn motors(&'a self) -> &'a [MotorSpec] {
+    pub fn motors(&self) -> &[MotorSpec] {
         &self.motors
+    }
+
+    /// The specification for the pump given by this configuration.
+    pub fn pump(&self) -> &PumpSpec {
+        &self.pump
     }
 }
 

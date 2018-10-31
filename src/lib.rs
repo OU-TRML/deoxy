@@ -37,7 +37,7 @@ use io::{GpioOutputStub, Pin};
 /// Exactly what it says on the tin (for now).
 #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 pub fn main(config: Config) {
-    let mgr = Coordinator::from(config.motors());
+    let mgr = Coordinator::from(&config);
     mgr.channels[0]
         .send(Action::Open(Duration::from_millis(2_000)))
         .unwrap();

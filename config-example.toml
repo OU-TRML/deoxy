@@ -22,3 +22,6 @@ period = 20 # ms
 pin = 23
 range = [553, 2520] # µs
 period = 20 # ms
+
+[pump]
+pins = [5, 6, 12, 13]

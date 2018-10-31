@@ -9,6 +9,8 @@ use io::{GpioOutputStub, Pin};
 
 pub use angle::Angle;
 
+use config::PumpSpec;
+
 /// Represents the range of angles that a motor can attain.
 #[derive(Clone, Copy, Debug)]
 pub enum MotorRange {
@@ -195,5 +197,11 @@ impl Pump {
         self.invert_pin.set_high().unwrap();
         self.toggle_pin.set_high().unwrap();
         self.timeout = Some(Instant::now() + len);
+    }
+}
+
+impl<'a> From<&'a PumpSpec> for Pump {
+    fn from(spec: &'a PumpSpec) -> Self {
+        Self::new(spec.pins[0], spec.pins[1]) // TODO: Merge H-bridge commit.
     }
 }
