@@ -21,12 +21,12 @@ pub type Delay = Duration;
 pub enum Action {
     /// Stops everything that's going on, clears the queue, and closes the tube.
     Stop,
-    /// Opens the tube for the specified duration (approximately).
-    Open(Duration),
+    /// Opens the tube for the specified duration (approximately), or indefinitely if None.
+    Open(Option<Duration>),
     /// Closes the tube. Unlike `Stop`, `Close` does not clear the queue.
     Close,
     /// Schedules an open event for later.
-    ScheduleOpen(Delay, Duration),
+    ScheduleOpen(Delay, Option<Duration>),
     /// Schedules a close event for later.
     ScheduleClose(Delay),
     /// Sets the motor to a custom angle for the specified duration.

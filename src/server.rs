@@ -74,11 +74,11 @@ fn cfg(req: &HttpRequest<Arc<Mutex<AppState>>>) -> ConfigExt {
 fn demo(req: &HttpRequest<Arc<Mutex<AppState>>>) -> impl Responder {
     let mgr = &req.state().lock().unwrap().coord;
     mgr.channels[0]
-        .send(Action::Open(Duration::from_millis(2_000)))
-        .and_then(|_| mgr.channels[1].send(Action::Open(Duration::from_millis(2_000))))
-        .and_then(|_| mgr.channels[2].send(Action::Open(Duration::from_millis(2_000))))
-        .and_then(|_| mgr.channels[3].send(Action::Open(Duration::from_millis(2_000))))
-        .and_then(|_| mgr.channels[4].send(Action::Open(Duration::from_millis(2_000))))
+        .send(Action::Open(Some(Duration::from_millis(2_000))))
+        .and_then(|_| mgr.channels[1].send(Action::Open(Some(Duration::from_millis(2_000)))))
+        .and_then(|_| mgr.channels[2].send(Action::Open(Some(Duration::from_millis(2_000)))))
+        .and_then(|_| mgr.channels[3].send(Action::Open(Some(Duration::from_millis(2_000)))))
+        .and_then(|_| mgr.channels[4].send(Action::Open(Some(Duration::from_millis(2_000)))))
         .map_err(|_| error::ErrorInternalServerError("Message sending failed."))
         .map(|_| "Demo started.")
 }
