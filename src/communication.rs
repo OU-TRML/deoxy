@@ -2,7 +2,7 @@
 
 use config::{Config, MotorSpec};
 
-use motion::{Motor, MotorRange};
+use motion::{Motor, MotorRange, Pump};
 use std::collections::VecDeque;
 use std::ops::Range;
 use std::sync::{mpsc, Arc, Mutex};
@@ -47,11 +47,17 @@ pub struct Slave {
     signal_range: Range<Duration>,
     period: Duration,
     pin: u16,
+    pump_ref: Arc<Mutex<Pump>>,
+    flag: Arc<Mutex<bool>>,
 }
 
 impl Slave {
     /// Creates a slave and communication (mpsc) channel for the given motor specs.
-    pub fn create_with_channel(spec: MotorSpec) -> (Self, mpsc::Sender<Action>) {
+    pub fn slave_and_channel(
+        spec: MotorSpec,
+        pump_ref: Arc<Mutex<Pump>>,
+        flag: Arc<Mutex<bool>>,
+    ) -> (Self, mpsc::Sender<Action>) {
         let pin = spec.get_pin();
         let (period, min, max) = (
             Duration::from_millis(spec.get_period()),
@@ -67,6 +73,8 @@ impl Slave {
                 signal_range: min..max,
                 period,
                 pin,
+                pump_ref,
+                flag,
             },
             tx,
         )
@@ -124,15 +132,42 @@ impl Slave {
                     let _queue = self.queue.drain(..);
                 }
                 assert_eq!(self.queue.len(), 0);
+                let _we_tried = self.pump_ref.try_lock().map(|mut p| p.close());
             }
             Action::Close => {
                 self.set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
+                self.pump_ref.lock().unwrap().close();
+                *self.flag.lock().unwrap() = true;
             }
             Action::Open(length) => {
+                let start = Instant::now();
+                // Block until we can get the pump.
+                loop {
+                    let mut flag = self.flag.lock().unwrap();
+                    if *flag {
+                        *flag = false;
+                        break;
+                    }
+                }
+                let r = self.pump_ref.clone();
+                let mut pump = r.lock().unwrap();
+                // Now, get the current instant and use it to perform correction on all the scheduled actions.
+                let now = Instant::now();
+                let delta = now - start;
+                // Iterate over the queue to push everything back by delta.
+                for action in self.queue.iter_mut() {
+                    action.0 = action.0 + delta;
+                }
+                // Open the motor and proceed
+                println!("Set motor orthogonal at instant {:?}", now);
                 self.set_orthogonal();
-                println!("Set motor orthogonal at instant {:?}", Instant::now());
-                self.handle(Action::ScheduleClose(length));
+                pump.perfuse();
+                if let Some(l) = length {
+                    self.handle(Action::ScheduleClose(l));
+                } else {
+                    *self.flag.lock().unwrap() = true;
+                }
             }
             Action::ScheduleOpen(delay, length) => {
                 self.queue
@@ -184,11 +219,15 @@ impl Slave {
 /// The entry point for all messages sent to motors.
 ///
 /// This struct owns all the communication channels. Don't let it go out of scope, or the motors
-/// *will* all close.
+/// *will* all close (and so will the pump).
 #[derive(Debug)]
 pub struct Coordinator {
     /// The communication channels to
     pub channels: Vec<mpsc::Sender<Action>>,
+    /// The pump.
+    pub pump: Arc<Mutex<Pump>>,
+    /// This flag is false if the pump has been claimed by a slave.
+    pub pump_is_free: Arc<Mutex<bool>>,
 }
 
 impl<'a> From<&'a Config> for Coordinator {
@@ -204,11 +243,13 @@ impl<'a> From<&'a Config> for Coordinator {
     /// This method will `panic!` if sending the `Action::Close` message to the child thread fails.
     fn from(config: &'a Config) -> Self {
         let motors = config.motors();
+        let pump_is_free = Arc::new(Mutex::new(true));
+        let pump = Arc::new(Mutex::new(config.pump().into()));
         Self {
             channels: motors
                 .iter()
                 .map(|spec| {
-                    Slave::create_with_channel(spec.clone())
+                    Slave::slave_and_channel(spec.clone(), pump.clone(), pump_is_free.clone())
                 })
                 .map(move |(slave, maw)| {
                     let _child = thread::spawn(move || {
@@ -218,6 +259,8 @@ impl<'a> From<&'a Config> for Coordinator {
                     maw
                 })
                 .collect(),
+            pump,
+            pump_is_free,
         }
     }
 }
