@@ -2,7 +2,7 @@
 
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 #[allow(unused_imports)]
 use io::{GpioOutputStub, Pin};
@@ -161,8 +161,6 @@ pub struct Pump {
     invert_pin: Pin,
     /// The current direction of the pump.
     direction: PumpDirection,
-    /// When the pin should stop running, if applicable.
-    timeout: Option<Instant>,
 }
 
 impl Pump {
@@ -172,7 +170,6 @@ impl Pump {
             toggle_pin: Pin::new(toggle_pin_number),
             invert_pin: Pin::new(invert_pin_number),
             direction: PumpDirection::Off,
-            timeout: None,
         }
     }
     /// Returns the pump's current direction.
@@ -185,18 +182,15 @@ impl Pump {
         self.invert_pin.set_low().unwrap();
         self.direction = PumpDirection::Off;
     }
-    /// Tells the pump to perfuse (run forward) for a given duration.
-    // TODO (#13): Make sure that the pump does not overfill the container during this duration.
-    pub fn perfuse(&mut self, len: Duration) {
+    /// Tells the pump to perfuse (run forward).
+    pub fn perfuse(&mut self) {
         self.invert_pin.set_low().unwrap();
         self.toggle_pin.set_high().unwrap();
-        self.timeout = Some(Instant::now() + len);
     }
-    /// Tells the pump to drain (run backward) for a given duration.
-    pub fn drain(&mut self, len: Duration) {
+    /// Tells the pump to drain (run backward).
+    pub fn drain(&mut self) {
         self.invert_pin.set_high().unwrap();
         self.toggle_pin.set_high().unwrap();
-        self.timeout = Some(Instant::now() + len);
     }
 }
 
