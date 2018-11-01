@@ -2,6 +2,7 @@
 
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Duration;
 
 #[allow(unused_imports)]
@@ -153,24 +154,44 @@ pub enum PumpDirection {
 /// In the canonical pump circuit, the on/off relay is normally open (off).
 /// The positive/negative relay is also normally open (positive).
 /// Powering the on/off relay causes the pump to run, either forward (± off) or backward (± on).
+///
+/// ### Diagram
+/// +-----+-----+
+/// |     0     1
+/// |     +-----+
+/// |     2     3
+/// +-----+-----+
 #[derive(Debug)]
 pub struct Pump {
-    /// The pin corresponding to the on/off relay.
-    toggle_pin: Pin,
-    /// The pin corresponding to the positive/negative relay.
-    invert_pin: Pin,
+    /// The relays of the H-bridge, in order (see diagram above).
+    pins: [Pin; 4],
     /// The current direction of the pump.
     direction: PumpDirection,
 }
 
 impl Pump {
     /// Creates a new pump on the pins specified and sets it to closed.
-    pub fn new(toggle_pin_number: u16, invert_pin_number: u16) -> Self {
+    pub fn new(pins: [u16; 4]) -> Self {
         Self {
-            toggle_pin: Pin::new(toggle_pin_number),
-            invert_pin: Pin::new(invert_pin_number),
+            pins: [
+                Pin::new(pins[0]),
+                Pin::new(pins[1]),
+                Pin::new(pins[2]),
+                Pin::new(pins[3]),
+            ],
             direction: PumpDirection::Off,
         }
+    }
+    /// Turns off relays 3 and 4, delaying slightly to be safe.
+    fn open_bottom(&mut self) {
+        self.pins[2].set_low().unwrap();
+        self.pins[3].set_low().unwrap();
+        thread::sleep(Duration::from_millis(10)); // TODO: How long should this be?
+    }
+    /// Turns off relays 1 and 2.
+    fn open_top(&mut self) {
+        self.pins[0].set_low().unwrap();
+        self.pins[1].set_low().unwrap();
     }
     /// Returns the pump's current direction.
     pub fn get_direction(&self) -> PumpDirection {
@@ -178,24 +199,30 @@ impl Pump {
     }
     /// Turns off the pump and opens both relays.
     pub fn close(&mut self) {
-        self.toggle_pin.set_low().unwrap();
-        self.invert_pin.set_low().unwrap();
+        self.open_bottom();
+        self.open_top();
         self.direction = PumpDirection::Off;
     }
     /// Tells the pump to perfuse (run forward).
     pub fn perfuse(&mut self) {
-        self.invert_pin.set_low().unwrap();
-        self.toggle_pin.set_high().unwrap();
+        self.open_bottom();
+        self.open_top();
+        self.pins[0].set_high().unwrap();
+        self.pins[3].set_high().unwrap();
+        self.direction = PumpDirection::Forward;
     }
     /// Tells the pump to drain (run backward).
     pub fn drain(&mut self) {
-        self.invert_pin.set_high().unwrap();
-        self.toggle_pin.set_high().unwrap();
+        self.open_bottom();
+        self.open_top();
+        self.pins[1].set_high().unwrap();
+        self.pins[2].set_high().unwrap();
+        self.direction = PumpDirection::Backward;
     }
 }
 
 impl<'a> From<&'a PumpSpec> for Pump {
     fn from(spec: &'a PumpSpec) -> Self {
-        Self::new(spec.pins[0], spec.pins[1]) // TODO: Merge H-bridge commit.
+        Self::new(spec.pins)
     }
 }

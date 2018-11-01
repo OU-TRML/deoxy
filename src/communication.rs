@@ -1,6 +1,6 @@
 //! Contains components essential for communication between threads and to motors, etc.
 
-use config::MotorSpec;
+use config::{Config, MotorSpec};
 
 use motion::{Motor, MotorRange};
 use std::collections::VecDeque;
@@ -191,22 +191,25 @@ pub struct Coordinator {
     pub channels: Vec<mpsc::Sender<Action>>,
 }
 
-impl<'a> From<&'a [MotorSpec]> for Coordinator {
+impl<'a> From<&'a Config> for Coordinator {
     ///
     ///
     /// #Notes
-    /// This method will spin up child threads and start `Slave`s looping (which is why it moves its
-    /// argument). Once it has been used, the motors *will* be receiving messages immediately.
+    /// This method will spin up child threads and start `Slave`s looping. Once it has been used,
+    /// the motors *will* be receiving messages immediately.
     ///
     /// The message sent to the motor is simply `Action::Close`, so that the motor immediately goes
     /// to the closed position if it is not already.
     /// #Panics
     /// This method will `panic!` if sending the `Action::Close` message to the child thread fails.
-    fn from(motors: &'a [MotorSpec]) -> Self {
+    fn from(config: &'a Config) -> Self {
+        let motors = config.motors();
         Self {
             channels: motors
                 .iter()
-                .map(|spec| Slave::create_with_channel(spec.clone()))
+                .map(|spec| {
+                    Slave::create_with_channel(spec.clone())
+                })
                 .map(move |(slave, maw)| {
                     let _child = thread::spawn(move || {
                         slave._loop();
