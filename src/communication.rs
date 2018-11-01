@@ -31,6 +31,14 @@ pub enum Action {
     ScheduleClose(Delay),
     /// Sets the motor to a custom angle for the specified duration.
     SetAngle(Angle, Duration),
+    /// Blocks the slave until asked to unblock.
+    Block,
+    /// Indicates that we're blocking.
+    ///
+    /// This variant stores the instant when blocking started so that we can adjust later.
+    KeepBlocking(Instant),
+    /// Unblocks the receiver, allowing the process flow to continue.
+    Unblock,
 }
 
 /// An future action that is expected to happen.
@@ -49,6 +57,10 @@ pub struct Slave {
     pin: u16,
     pump_ref: Arc<Mutex<Pump>>,
     pump_in_use: Arc<Mutex<bool>>,
+    /// Shared state indicating whether the Slave is blocking.
+    ///
+    /// Used to tell the user their help is needed.
+    pub is_blocking: Arc<Mutex<bool>>,
 }
 
 impl Slave {
@@ -75,6 +87,7 @@ impl Slave {
                 pin,
                 pump_ref,
                 pump_in_use,
+                is_blocking: Arc::new(Mutex::new(false)),
             },
             tx,
         )
@@ -120,6 +133,13 @@ impl Slave {
         self.set_angle(Angle::with_measure(0.0)).unwrap();
     }
 
+    /// Pushes back all scheduled actions by a specified duration.
+    fn delay_steps(&mut self, delta: Duration) {
+        for action in self.queue.iter_mut() {
+            action.0 = action.0 + delta;
+        }
+    }
+
     /// Handles all messages sent to the thread.
     #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
     fn handle(&mut self, message: Action) {
@@ -155,10 +175,7 @@ impl Slave {
                 // Now, get the current instant and use it to perform correction on all the scheduled actions.
                 let now = Instant::now();
                 let delta = now - start;
-                // Iterate over the queue to push everything back by delta.
-                for action in self.queue.iter_mut() {
-                    action.0 = action.0 + delta;
-                }
+                self.delay_steps(delta);
                 // Open the motor and proceed
                 println!("Set motor orthogonal at instant {:?}", now);
                 self.set_orthogonal();
@@ -186,6 +203,18 @@ impl Slave {
                 );
                 self.handle(Action::ScheduleClose(length));
             }
+            Action::Block => {
+                *self.is_blocking.lock().unwrap() = true;
+                // TODO(#17): Notify user that we're blocking.
+                let now = Instant::now();
+                self.queue.push_front((now, Action::KeepBlocking(now)));
+            }
+            Action::KeepBlocking(since) => {
+                self.queue.push_front((since, Action::KeepBlocking(since)));
+            }
+            Action::Unblock => {
+                panic!("Encountered Action::Unblock in Slave queue.");
+            }
         }
     }
 
@@ -202,7 +231,22 @@ impl Slave {
         });
         loop {
             if let Ok(action) = self.rx.try_recv() {
-                self.handle(action);
+                match action {
+                    Action::Unblock => {
+                        // This could go in the match, but we'll be safe and put it here.
+                        *self.is_blocking.lock().unwrap() = false;
+                        match self.queue.pop_front() {
+                            Some((_, Action::KeepBlocking(start))) => {
+                                let now = Instant::now();
+                                let delta = now - start;
+                                self.delay_steps(delta);
+                            }
+                            Some(a) => self.queue.push_front(a),
+                            None => {}
+                        }
+                    }
+                    a => self.handle(a),
+                }
             }
             if let Some(action) = self.queue.pop_front() {
                 let now = Instant::now();
