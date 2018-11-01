@@ -48,7 +48,7 @@ pub struct Slave {
     period: Duration,
     pin: u16,
     pump_ref: Arc<Mutex<Pump>>,
-    flag: Arc<Mutex<bool>>,
+    pump_in_use: Arc<Mutex<bool>>,
 }
 
 impl Slave {
@@ -56,7 +56,7 @@ impl Slave {
     pub fn slave_and_channel(
         spec: MotorSpec,
         pump_ref: Arc<Mutex<Pump>>,
-        flag: Arc<Mutex<bool>>,
+        pump_in_use: Arc<Mutex<bool>>,
     ) -> (Self, mpsc::Sender<Action>) {
         let pin = spec.get_pin();
         let (period, min, max) = (
@@ -74,7 +74,7 @@ impl Slave {
                 period,
                 pin,
                 pump_ref,
-                flag,
+                pump_in_use,
             },
             tx,
         )
@@ -138,15 +138,15 @@ impl Slave {
                 self.set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
                 self.pump_ref.lock().unwrap().close();
-                *self.flag.lock().unwrap() = true;
+                *self.pump_in_use.lock().unwrap() = true;
             }
             Action::Open(length) => {
                 let start = Instant::now();
                 // Block until we can get the pump.
                 loop {
-                    let mut flag = self.flag.lock().unwrap();
-                    if *flag {
-                        *flag = false;
+                    let mut pump_in_use = self.pump_in_use.lock().unwrap();
+                    if *pump_in_use {
+                        *pump_in_use = false;
                         break;
                     }
                 }
@@ -166,7 +166,7 @@ impl Slave {
                 if let Some(l) = length {
                     self.handle(Action::ScheduleClose(l));
                 } else {
-                    *self.flag.lock().unwrap() = true;
+                    *self.pump_in_use.lock().unwrap() = true;
                 }
             }
             Action::ScheduleOpen(delay, length) => {
@@ -226,7 +226,7 @@ pub struct Coordinator {
     pub channels: Vec<mpsc::Sender<Action>>,
     /// The pump.
     pub pump: Arc<Mutex<Pump>>,
-    /// This flag is false if the pump has been claimed by a slave.
+    /// This pump_in_use is false if the pump has been claimed by a slave.
     pub pump_is_free: Arc<Mutex<bool>>,
 }
 
