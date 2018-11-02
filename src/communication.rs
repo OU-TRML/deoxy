@@ -158,15 +158,15 @@ impl Slave {
                 self.set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
                 self.pump_ref.lock().unwrap().close();
-                *self.pump_in_use.lock().unwrap() = true;
+                *self.pump_in_use.lock().unwrap() = false;
             }
             Action::Open(length) => {
                 let start = Instant::now();
                 // Block until we can get the pump.
                 loop {
                     let mut pump_in_use = self.pump_in_use.lock().unwrap();
-                    if *pump_in_use {
-                        *pump_in_use = false;
+                    if !*pump_in_use {
+                        *pump_in_use = true;
                         break;
                     }
                 }
@@ -183,7 +183,7 @@ impl Slave {
                 if let Some(l) = length {
                     self.handle(Action::ScheduleClose(l));
                 } else {
-                    *self.pump_in_use.lock().unwrap() = true;
+                    *self.pump_in_use.lock().unwrap() = false;
                 }
             }
             Action::ScheduleOpen(delay, length) => {
