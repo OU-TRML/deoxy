@@ -50,5 +50,23 @@ pub fn main(config: Config) {
     mgr.channels[3]
         .send(Action::Open(Some(Duration::from_millis(2_000))))
         .unwrap();
+    mgr.channels[4]
+        .send(Action::Open(Some(Duration::from_millis(2_000))))
+        .unwrap();
+    mgr.channels[5]
+        .send(Action::Open(Some(Duration::from_millis(2_000))))
+        .unwrap();
+    mgr.channels[6]
+        .send(Action::Open(Some(Duration::from_millis(2_000))))
+        .unwrap();
+    mgr.channels[7]
+        .send(Action::Open(Some(Duration::from_millis(2_000))))
+        .unwrap();
+    mgr.channels[8]
+        .send(Action::Open(Some(Duration::from_millis(2_000))))
+        .unwrap();
+    mgr.channels[9]
+        .send(Action::Open(Some(Duration::from_millis(2_000))))
+        .unwrap();
     thread::sleep(Duration::from_millis(3_000));
 }

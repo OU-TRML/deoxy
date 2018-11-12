@@ -9,7 +9,22 @@ range = [553, 2520] # µs
 period = 20 # ms
 
 [[motors]]
-pin = 18
+pin = 21
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 13
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 26
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 23
 range = [553, 2520] # µs
 period = 20 # ms
 
@@ -19,9 +34,19 @@ range = [553, 2520] # µs
 period = 20 # ms
 
 [[motors]]
-pin = 23
+pin = 12
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 20
+range = [553, 2520] # µs
+period = 20 # ms
+
+[[motors]]
+pin = 19
 range = [553, 2520] # µs
 period = 20 # ms
 
 [pump]
-pins = [5, 6, 12, 13]
+pins = [24, 25, 5, 6]
