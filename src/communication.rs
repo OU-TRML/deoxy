@@ -16,6 +16,15 @@ pub type Delay = Duration;
 
 /// Encodes an action that a motor can take.
 // We don't want duplicate actions, so we disable Copy and make move semantics matter for this.
+///
+/// #### Notes
+///
+/// In order to handle the case of filling and waiting for the user to do something, the
+/// currently-supported method is to request an `Open(None)` at time `t`, followed by an
+/// appropriately-scheduled (`t + length`) `Close(None)` (which could also be scheduled with
+/// `ScheduleClose`), followed immediately by a `Block`, followed immediately by a
+/// `Close(length)`. This is obviously not very fun to work with, so we'll probably provide a
+/// more convenient method later (see [#18](https://github.com/Aehmlo/deoxy/issues/18)).
 #[allow(missing_copy_implementations)]
 #[derive(Debug)]
 pub enum Action {
@@ -24,11 +33,17 @@ pub enum Action {
     /// Opens the tube for the specified duration (approximately), or indefinitely if None.
     Open(Option<Duration>),
     /// Closes the tube. Unlike `Stop`, `Close` does not clear the queue.
-    Close,
+    ///
+    /// If a duration is given, it is the amount of time for which to allow the pump to drain.
+    /// In this case, another close with no duration is scheduled for immediately after the pump is
+    /// done to clean up (free the pump).
+    Close(Option<Duration>),
     /// Schedules an open event for later.
     ScheduleOpen(Delay, Option<Duration>),
     /// Schedules a close event for later.
-    ScheduleClose(Delay),
+    ///
+    /// If a duration is also given, it is the amount of time for which to allow the pump to drain.
+    ScheduleClose(Delay, Option<Duration>),
     /// Sets the motor to a custom angle for the specified duration.
     SetAngle(Angle, Duration),
     /// Blocks the slave until asked to unblock.
@@ -154,11 +169,24 @@ impl Slave {
                 assert_eq!(self.queue.len(), 0);
                 let _we_tried = self.pump_ref.try_lock().map(|mut p| p.close());
             }
-            Action::Close => {
+            Action::Close(drain_time) => {
                 self.set_neutral();
                 println!("Set motor neutral at instant {:?}", Instant::now());
-                self.pump_ref.lock().unwrap().close();
-                *self.pump_in_use.lock().unwrap() = false;
+                if let Some(time) = drain_time {
+                    let start = Instant::now();
+                    let r = self.pump_ref.clone();
+                    let mut pump = r.lock().unwrap();
+                    pump.drain();
+                    let delta = Instant::now() - start;
+                    self.delay_steps(delta);
+                    self.handle(Action::ScheduleClose(time, None));
+                } else {
+                    let start = Instant::now();
+                    self.pump_ref.lock().unwrap().close();
+                    *self.pump_in_use.lock().unwrap() = false;
+                    let delta = Instant::now() - start;
+                    self.delay_steps(delta);
+                }
             }
             Action::Open(length) => {
                 let start = Instant::now();
@@ -181,7 +209,7 @@ impl Slave {
                 self.set_orthogonal();
                 pump.perfuse();
                 if let Some(l) = length {
-                    self.handle(Action::ScheduleClose(l));
+                    self.handle(Action::ScheduleClose(l, Some(l)));
                 } else {
                     *self.pump_in_use.lock().unwrap() = false;
                 }
@@ -190,9 +218,9 @@ impl Slave {
                 self.queue
                     .push_back((Instant::now() + delay, Action::Open(length)));
             }
-            Action::ScheduleClose(delay) => {
+            Action::ScheduleClose(delay, length) => {
                 self.queue
-                    .push_back((Instant::now() + delay, Action::Close));
+                    .push_back((Instant::now() + delay, Action::Close(length)));
             }
             Action::SetAngle(angle, length) => {
                 self.set_angle(angle).unwrap();
@@ -201,7 +229,7 @@ impl Slave {
                     angle,
                     Instant::now()
                 );
-                self.handle(Action::ScheduleClose(length));
+                self.handle(Action::ScheduleClose(length, Some(length)));
             }
             Action::Block => {
                 *self.is_blocking.lock().unwrap() = true;
@@ -299,7 +327,7 @@ impl<'a> From<&'a Config> for Coordinator {
                     let _child = thread::spawn(move || {
                         slave._loop();
                     });
-                    maw.send(Action::Close).unwrap(); // TODO: Error handling
+                    maw.send(Action::Close(None)).unwrap(); // TODO: Error handling
                     maw
                 })
                 .collect(),
