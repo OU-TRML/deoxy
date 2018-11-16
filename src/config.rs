@@ -50,7 +50,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\nflow-rate=1000\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_pin(), 17);
@@ -66,7 +66,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\nflow-rate=1000\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_min(), 1);
@@ -82,7 +82,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\nflow-rate=1000\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_max(), 2);
@@ -98,7 +98,7 @@ impl MotorSpec {
     /// # extern crate deoxy;
     /// # use std::str::FromStr;
     /// # use deoxy::config::{Config, MotorSpec};
-    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
+    /// let cfg = Config::from_str("[pump]\npins=[1,2,3,4]\nflow-rate=1000\n[[motors]]\npin = 17\nrange = [1, 2]\nperiod = 20").unwrap();
     /// let motors = cfg.motors();
     /// let motor = &motors[0];
     /// assert_eq!(motor.get_period(), 20);
@@ -115,6 +115,9 @@ impl MotorSpec {
 pub struct PumpSpec {
     /// The pins the H-bridge uses. See the documentation for `Pump` for more details.
     pub pins: [u16; 4],
+    /// The flow rate of the pump in mL/min.
+    #[serde(rename = "flow-rate")]
+    pub flow_rate: u16,
     // TODO (#15): type: PumpControlType (H-bridge, DPDT, whatever else)
 }
 
