@@ -28,45 +28,21 @@ pub mod config;
 pub mod io;
 pub mod motion;
 
-use angle::Angle;
 use communication::{Action, Coordinator};
 use config::Config;
 #[allow(unused_imports)]
 use io::{GpioOutputStub, Pin};
 
+fn send_open(coord: &Coordinator, index: usize) -> Result<(), std::sync::mpsc::SendError<Action>> {
+    coord.channels[index].send(Action::Open(Some(Duration::from_secs(2))))
+}
+
 /// Exactly what it says on the tin (for now).
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
 pub fn main(config: Config) {
     let mgr = Coordinator::from(&config);
-    mgr.channels[0]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[1]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[2]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[3]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[4]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[5]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[6]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[7]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[8]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
-    mgr.channels[9]
-        .send(Action::Open(Some(Duration::from_millis(2_000))))
-        .unwrap();
+    for i in 0..10 {
+        send_open(&mgr, i).unwrap();
+    }
     thread::sleep(Duration::from_millis(3_000));
 }

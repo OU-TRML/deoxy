@@ -5,7 +5,10 @@ use config::{Config, MotorSpec};
 use motion::{Motor, MotorRange, Pump};
 use std::collections::VecDeque;
 use std::ops::Range;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    mpsc, Arc, Mutex,
+};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -71,19 +74,20 @@ pub struct Slave {
     period: Duration,
     pin: u16,
     pump_ref: Arc<Mutex<Pump>>,
-    pump_in_use: Arc<Mutex<bool>>,
+    pump_in_use: Arc<AtomicBool>,
     /// Shared state indicating whether the Slave is blocking.
     ///
     /// Used to tell the user their help is needed.
-    pub is_blocking: Arc<Mutex<bool>>,
+    pub is_blocking: Arc<AtomicBool>,
 }
 
 impl Slave {
     /// Creates a slave and communication (mpsc) channel for the given motor specs.
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
     pub fn slave_and_channel(
         spec: MotorSpec,
         pump_ref: Arc<Mutex<Pump>>,
-        pump_in_use: Arc<Mutex<bool>>,
+        pump_in_use: Arc<AtomicBool>,
     ) -> (Self, mpsc::Sender<Action>) {
         let pin = spec.get_pin();
         let (period, min, max) = (
@@ -102,7 +106,7 @@ impl Slave {
                 pin,
                 pump_ref,
                 pump_in_use,
-                is_blocking: Arc::new(Mutex::new(false)),
+                is_blocking: Arc::new(AtomicBool::new(false)),
             },
             tx,
         )
@@ -151,12 +155,12 @@ impl Slave {
     /// Pushes back all scheduled actions by a specified duration.
     fn delay_steps(&mut self, delta: Duration) {
         for action in self.queue.iter_mut() {
-            action.0 = action.0 + delta;
+            action.0 += delta;
         }
     }
 
     /// Handles all messages sent to the thread.
-    #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::needless_pass_by_value))]
     fn handle(&mut self, message: Action) {
         match message {
             // TODO: Error handling
@@ -183,7 +187,7 @@ impl Slave {
                 } else {
                     let start = Instant::now();
                     self.pump_ref.lock().unwrap().close();
-                    *self.pump_in_use.lock().unwrap() = false;
+                    self.pump_in_use.store(false, Ordering::SeqCst);
                     let delta = Instant::now() - start;
                     self.delay_steps(delta);
                 }
@@ -192,9 +196,8 @@ impl Slave {
                 let start = Instant::now();
                 // Block until we can get the pump.
                 loop {
-                    let mut pump_in_use = self.pump_in_use.lock().unwrap();
-                    if !*pump_in_use {
-                        *pump_in_use = true;
+                    if !self.pump_in_use.load(Ordering::SeqCst) {
+                        self.pump_in_use.store(true, Ordering::SeqCst);
                         break;
                     }
                 }
@@ -211,7 +214,7 @@ impl Slave {
                 if let Some(l) = length {
                     self.handle(Action::ScheduleClose(l, Some(l)));
                 } else {
-                    *self.pump_in_use.lock().unwrap() = false;
+                    self.pump_in_use.store(false, Ordering::SeqCst);
                 }
             }
             Action::ScheduleOpen(delay, length) => {
@@ -232,7 +235,7 @@ impl Slave {
                 self.handle(Action::ScheduleClose(length, Some(length)));
             }
             Action::Block => {
-                *self.is_blocking.lock().unwrap() = true;
+                self.is_blocking.store(true, Ordering::SeqCst);
                 // TODO(#17): Notify user that we're blocking.
                 let now = Instant::now();
                 self.queue.push_front((now, Action::KeepBlocking(now)));
@@ -262,7 +265,7 @@ impl Slave {
                 match action {
                     Action::Unblock => {
                         // This could go in the match, but we'll be safe and put it here.
-                        *self.is_blocking.lock().unwrap() = false;
+                        self.is_blocking.store(false, Ordering::SeqCst);
                         match self.queue.pop_front() {
                             Some((_, Action::KeepBlocking(start))) => {
                                 let now = Instant::now();
@@ -299,7 +302,7 @@ pub struct Coordinator {
     /// The pump.
     pub pump: Arc<Mutex<Pump>>,
     /// This pump_in_use is false if the pump has been claimed by a slave.
-    pub pump_is_free: Arc<Mutex<bool>>,
+    pub pump_is_free: Arc<AtomicBool>,
 }
 
 impl<'a> From<&'a Config> for Coordinator {
@@ -315,7 +318,7 @@ impl<'a> From<&'a Config> for Coordinator {
     /// This method will `panic!` if sending the `Action::Close` message to the child thread fails.
     fn from(config: &'a Config) -> Self {
         let motors = config.motors();
-        let pump_is_free = Arc::new(Mutex::new(true));
+        let pump_is_free = Arc::new(AtomicBool::new(true));
         let pump = Arc::new(Mutex::new(config.pump().into()));
         Self {
             channels: motors
