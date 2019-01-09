@@ -4,5 +4,10 @@ mod actix {
 }
 
 mod motor;
-pub use self::motor::{Message as MotorMessage, Motor};
 pub(crate) mod pin;
+mod pump;
+
+pub use self::{
+    motor::{Message as MotorMessage, Motor},
+    pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
+};
