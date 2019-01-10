@@ -2,7 +2,10 @@
 
 use std::{ops::RangeInclusive, time::Duration};
 
-use crate::{actix::*, pin::Pin};
+use crate::{
+    actix::*,
+    pin::{Error as PinError, Pin},
+};
 
 /// A message that can be sent to a motor to change its position.
 pub enum Message {
@@ -19,7 +22,7 @@ impl ActixMessage for Message {
 /// A motor connected to the syringe manifold.
 ///
 /// Moving a motor (physically) will cause the control knob to rotate.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct Motor {
     /// The characteristic period of the motor.
     period: Duration,
@@ -37,6 +40,14 @@ pub struct Motor {
     /// Changing this property will change the position of the motor.
     pulse_width: Duration,
 }
+
+impl PartialEq for Motor {
+    fn eq(&self, other: &Self) -> bool {
+        self.pin.number == other.pin.number
+    }
+}
+
+impl Eq for Motor {}
 
 impl Motor {
     /// Sets the motor's angle in degrees (relative to the closed position).
@@ -64,15 +75,37 @@ impl Motor {
     pub fn open(&mut self) {
         self.set_angle(90)
     }
+    ///
     /// Constructs a new motor with the given period and signal range on the given pin number, if
     /// possible.
     ///
     /// The motor will be set to the closed position initially.
-    pub fn new<R>(period: Duration, range: R, pin: u8) -> Self
+    pub fn try_new<R>(period: Duration, range: R, pin: u16) -> Result<Self, PinError>
     where
         R: Into<RangeInclusive<Duration>>,
     {
-        let pin: Pin = unimplemented!();
+        let pin = Pin::try_new(pin)?;
+        let signal_range = range.into();
+        Ok(Self {
+            period,
+            pin,
+            pulse_width: *signal_range.start(),
+            signal_range,
+        })
+    }
+    /// Constructs a new motor with the given period and signal range on the given pin number, if
+    /// possible.
+    ///
+    /// The motor will be set to the closed position initially.
+    ///
+    /// ## Panics
+    /// This method will panic if opening the pin fails. For a fallible initializer, see
+    /// [`Motor::try_new`](#method.try_new).
+    pub fn new<R>(period: Duration, range: R, pin: u16) -> Self
+    where
+        R: Into<RangeInclusive<Duration>>,
+    {
+        let pin = Pin::try_new(pin).unwrap();
         let signal_range = range.into();
         Self {
             period,

@@ -9,5 +9,6 @@ mod pump;
 
 pub use self::{
     motor::{Message as MotorMessage, Motor},
+    pin::Error as PinError,
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
 };
