@@ -41,4 +41,4 @@ pub use self::{
 };
 
 mod program;
-pub use self::program::{Protocol, Step, ValidateError as ValidateProgramError};
+pub use self::program::{Action, Program, Protocol, Step, ValidateError as ValidateProgramError};
