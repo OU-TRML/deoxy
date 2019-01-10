@@ -54,8 +54,9 @@ impl Motor {
     /// Sets the motor's angle in degrees (relative to the closed position).
     ///
     /// ## Panics
-    /// This method will panic if `angle` is less than 0 or greater than 180.
+    /// This method will panic if `angle` is greater than 180.
     pub fn set_angle(&mut self, angle: u16) {
+        assert!(angle <= 180);
         let (start, end) = (self.signal_range.start(), self.signal_range.end());
         // Dereference, since auto-deref doesn't seem to work for std::ops::Sub?
         let (start, end) = (*start, *end);
