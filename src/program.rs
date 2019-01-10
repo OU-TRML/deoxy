@@ -110,6 +110,14 @@ pub struct Program {
     actions: Vec<Action>,
 }
 
+impl IntoIterator for Program {
+    type Item = Action;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.actions.into_iter()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
