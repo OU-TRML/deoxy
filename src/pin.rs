@@ -1,6 +1,7 @@
 //! Utilities for working with GPIO pins.
 use std::{fmt, io::Error as IoError};
 
+#[cfg_attr(feature = "stub", allow(unused_imports))]
 use gpio::{sysfs::SysFsGpioOutput, GpioOut};
 
 /// GPIO operation error type.

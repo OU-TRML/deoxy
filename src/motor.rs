@@ -131,3 +131,29 @@ impl Handle<Message> for Motor {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // This test makes sure the panic in validate_motor_angle isn't from constructing the motor and unwrapping it.
+    #[test]
+    fn make_fake_motor() {
+        let _motor = Motor::try_new(
+            Duration::new(2, 0),
+            Duration::new(0, 0)..=Duration::new(1, 0),
+            1,
+        )
+        .unwrap();
+    }
+    #[test]
+    #[should_panic]
+    fn validate_motor_angle() {
+        let mut motor = Motor::try_new(
+            Duration::new(2, 0),
+            Duration::new(0, 0)..=Duration::new(1, 0),
+            1,
+        )
+        .unwrap();
+        motor.set_angle(181);
+    }
+}
