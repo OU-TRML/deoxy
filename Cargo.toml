@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 actix = "0.7.9"
+gpio = "0.4.1"
 
 [[bin]]
 name = "deoxy"
