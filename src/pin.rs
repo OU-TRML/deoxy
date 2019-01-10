@@ -1,5 +1,5 @@
 //! Utilities for working with GPIO pins.
-use std::io::Error as IoError;
+use std::{fmt, io::Error as IoError};
 
 use gpio::{dummy::DummyGpioOut, sysfs::SysFsGpioOutput, GpioOut};
 
@@ -15,6 +15,15 @@ impl From<IoError> for Error {
         Error::Io(err)
     }
 }
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let Error::Io(err) = self;
+        err.fmt(f)
+    }
+}
+
+impl std::error::Error for Error {}
 
 /// Pin result type, returning pin state or a write error.
 pub type Result = std::result::Result<bool, Error>;

@@ -8,6 +8,7 @@ use crate::{
 };
 
 /// A message that can be sent to a motor to change its position.
+#[derive(Clone, Copy, Debug)]
 pub enum Message {
     /// Requests that the motor be set to the closed position.
     Close,

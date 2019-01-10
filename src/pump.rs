@@ -50,6 +50,7 @@ pub type Result<T> = std::result::Result<T, PinError>;
 ///  |     2     3
 ///  +-----+-----+
 /// ```
+#[derive(Debug)]
 pub struct Pump {
     /// The GPIO pins to use for the H-bridge.
     pins: [Pin; 4],
