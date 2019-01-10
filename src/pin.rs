@@ -1,7 +1,7 @@
 //! Utilities for working with GPIO pins.
 use std::{fmt, io::Error as IoError};
 
-use gpio::{dummy::DummyGpioOut, sysfs::SysFsGpioOutput, GpioOut};
+use gpio::{sysfs::SysFsGpioOutput, GpioOut};
 
 /// GPIO operation error type.
 #[derive(Debug)]
@@ -27,25 +27,47 @@ impl std::error::Error for Error {}
 
 /// Pin result type, returning pin state or a write error.
 pub type Result = std::result::Result<bool, Error>;
-/// An actual pin type (non-stubbed).
-pub type Pin = Out<SysFsGpioOutput>;
-#[allow(dead_code)]
-pub type Stub<F> = Out<DummyGpioOut<F>>;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Out<T>
-where
-    T: GpioOut,
-{
+/// Represents a GPIO pin.
+#[derive(Debug)]
+pub struct Pin {
     pub(crate) number: u16,
-    output: T,
+    #[cfg(not(feature = "stub"))]
+    output: SysFsGpioOutput,
+    #[cfg(feature = "stub")]
+    output: self::stub::StubOutput,
+}
+
+#[cfg(feature = "stub")]
+mod stub {
+    use std::io::Error as IoError;
+    #[derive(Debug)]
+    pub struct StubOutput {}
+
+    impl gpio::GpioOut for StubOutput {
+        type Error = IoError;
+        fn set_high(&mut self) -> Result<(), IoError> {
+            Ok(())
+        }
+        fn set_low(&mut self) -> Result<(), IoError> {
+            Ok(())
+        }
+    }
 }
 
 impl Pin {
     /// Attempts to create an output Pin struct on the given pin number.
+    #[cfg(not(feature = "stub"))]
     pub fn try_new(number: u16) -> std::result::Result<Self, Error> {
         Ok(Self {
             output: SysFsGpioOutput::open(number)?,
+            number,
+        })
+    }
+    #[cfg(feature = "stub")]
+    pub fn try_new(number: u16) -> std::result::Result<Self, Error> {
+        Ok(Self {
+            output: self::stub::StubOutput {},
             number,
         })
     }
