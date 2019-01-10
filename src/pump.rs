@@ -89,16 +89,7 @@ impl Pump {
     /// This method will panic if opening any of the pins fails. For a fallible initializer, see
     /// [`Pump::try_new`](#method.try_new).
     pub fn new(pins: [u16; 4]) -> Self {
-        let pins = [
-            Pin::try_new(pins[0]).unwrap(),
-            Pin::try_new(pins[1]).unwrap(),
-            Pin::try_new(pins[2]).unwrap(),
-            Pin::try_new(pins[3]).unwrap(),
-        ];
-        Self {
-            direction: None,
-            pins,
-        }
+        Self::try_new(pins).unwrap()
     }
     /// Changes the pump direction to the specified direction.
     ///

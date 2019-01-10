@@ -95,8 +95,7 @@ impl Motor {
             signal_range,
         })
     }
-    /// Constructs a new motor with the given period and signal range on the given pin number, if
-    /// possible.
+    /// Constructs a new motor with the given period and signal range on the given pin number.
     ///
     /// The motor will be set to the closed position initially.
     ///
@@ -107,14 +106,7 @@ impl Motor {
     where
         R: Into<RangeInclusive<Duration>>,
     {
-        let pin = Pin::try_new(pin).unwrap();
-        let signal_range = range.into();
-        Self {
-            period,
-            pin,
-            pulse_width: *signal_range.start(),
-            signal_range,
-        }
+        Self::try_new(period, range, pin).unwrap()
     }
 }
 
