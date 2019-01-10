@@ -7,8 +7,10 @@ matrix:
   fast_finish: true
 sudo: false
 install:
-  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || rustup component add rustfmt-preview
+  - rustup component add rustfmt
+  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || rustup target add wasm32-unknown-unknown
 script:
-  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || cargo fmt --all -- --check
+  - cargo fmt --all -- --check
   - cargo build --features "stub" --verbose
   - cargo test --features "stub" --verbose
+  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || cargo build --no-default-features --features wasm --target wasm32-unknown-unknown

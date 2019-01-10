@@ -6,18 +6,23 @@ description = "A programmable, user-friendly buffer exchange system."
 license = "ISC"
 edition = "2018"
 
-[dependencies]
-actix = "0.7.9"
-gpio = "0.4.1"
-
 [[bin]]
 name = "deoxy"
 doc = false
 path = "src/main.rs"
 
+[dependencies.actix]
+version = "0.7.9"
+optional = true
+[dependencies.gpio]
+version = "0.4.1"
+optional = true
+
 [features]
-default = []
-stub = []
+default = ["full"]
+full = ["actix", "gpio"] # Build full library (with threading and all)
+stub = [] # Stub GPIO outputs for CI (where we can't access GPIO)
+wasm = [] # Build just validation/user input components
 
 [badges]
 travis-ci = { repository = "aehmlo/deoxy", branch = "master" }

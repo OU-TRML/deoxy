@@ -18,16 +18,27 @@
     clippy::wrong_pub_self_convention
 )]
 
+/// Used to uniquely identify motors/valves.
+pub type MotorId = usize;
+
+#[cfg(feature = "full")]
 mod actix {
     pub use actix::{Actor, Context, Handler as Handle, Message as ActixMessage};
 }
 
+#[cfg(feature = "full")]
 mod motor;
+#[cfg(feature = "full")]
 pub(crate) mod pin;
+#[cfg(feature = "full")]
 mod pump;
 
+#[cfg(feature = "full")]
 pub use self::{
     motor::{Message as MotorMessage, Motor},
     pin::Error as PinError,
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
 };
+
+mod program;
+pub use self::program::{Protocol, Step, ValidateError as ValidateProgramError};
