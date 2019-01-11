@@ -27,6 +27,8 @@ mod actix {
 }
 
 #[cfg(feature = "full")]
+mod comm;
+#[cfg(feature = "full")]
 mod motor;
 #[cfg(feature = "full")]
 pub(crate) mod pin;
@@ -35,6 +37,7 @@ mod pump;
 
 #[cfg(feature = "full")]
 pub use self::{
+    comm::{Coordinator, State as ExecState},
     motor::{Message as MotorMessage, Motor},
     pin::Error as PinError,
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
