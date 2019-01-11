@@ -23,7 +23,7 @@ pub type MotorId = usize;
 
 #[cfg(feature = "full")]
 mod actix {
-    pub use actix::{Actor, Context, Handler as Handle, Message as ActixMessage};
+    pub use actix_web::actix::{Actor, Context, Handler as Handle, Message as ActixMessage};
 }
 
 #[cfg(feature = "full")]

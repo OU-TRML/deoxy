@@ -11,8 +11,8 @@ name = "deoxy"
 doc = false
 path = "src/main.rs"
 
-[dependencies.actix]
-version = "0.7.9"
+[dependencies.actix-web]
+version = "0.7.18"
 optional = true
 [dependencies.gpio]
 version = "0.4.1"
@@ -20,7 +20,7 @@ optional = true
 
 [features]
 default = ["full"]
-full = ["actix", "gpio"] # Build full library (with threading and all)
+full = ["actix-web", "gpio"] # Build full library (with threading and all)
 stub = [] # Stub GPIO outputs for CI (where we can't access GPIO)
 wasm = [] # Build just validation/user input components
 
