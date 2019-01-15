@@ -1,8 +1,14 @@
 //! Communication utilities.
 use crate::actix::*;
-use crate::{Action, Motor, MotorId, Program, Protocol, Pump, Step, ValidateProtocolError};
+use crate::{
+    Action, Motor, MotorId, MotorMessage, Program, Protocol, Pump, PumpMessage, Step,
+    ValidateProtocolError,
+};
+
+use std::ops::Index;
 
 type Result<T> = std::result::Result<T, Error>;
+type CoordContext = Context<Coordinator>;
 
 /// **Expand for important information.**
 ///
@@ -118,17 +124,30 @@ impl Coordinator {
     pub fn status(&self) -> State {
         self.state.status
     }
-    /// Clears the remaining program queue after the next perfusion.
-    fn clear(&mut self) -> Result<()> {
-        if let Some(iter) = &self.iter {
-            let mut remaining = iter.clone().collect::<Vec<_>>();
-            if let Some(index) = remaining.iter().position(|action| action.is_disjoint()) {
-                // Vec::truncate keeps n elements, but we don't want to keep the element at index.
-                remaining.truncate(index);
+    /// Closes all valves.
+    fn close_all(&self) {
+        for addr in &self.addresses.motors {
+            addr.do_send(MotorMessage::Close);
+        }
+    }
+    /// Moves to the next step of the protocol, returning the new current action.
+    fn advance(&mut self, context: &mut CoordContext) -> Result<Option<Action>> {
+        if !self.state.remaining.is_empty() {
+            let action = self.state.remaining.remove(0);
+            // Make sure to message something that will call advance again later!
+            match action {
+                Action::Perfuse(_buffer) => unimplemented!(),
+                Action::Sleep(duration) => {
+                    context.run_later(duration, |coord, context| {
+                        coord.advance(context).unwrap();
+                    });
+                }
+                Action::Hail => self.state.status = State::Waiting,
+                Action::Drain => unimplemented!(),
+                Action::Finish => unimplemented!(),
             }
-            // TODO: Instead of doing this, mark the program as partially completed.
-            self.program = None;
-            Ok(())
+            self.state.current = Some(action);
+            Ok(self.state.current)
         } else {
             self.state.status = State::Stopped { early: false };
             Ok(None)
@@ -158,42 +177,48 @@ impl Coordinator {
         I: Into<Option<MotorId>>,
     {
         if let Some(target) = buffer.into() {
-            if let Some(current) = self.buffer {
+            if let Some(current) = self.state.buffer {
                 if current == target {
                     // We're already in the target buffer; we don't need to do much else.
                     self.clear()?;
                 } else {
                     let program = Protocol::with_step(Step::Perfuse(target, None)).as_program()?;
-                    self.program = Some(program.clone());
-                    self.iter = Some(program.into_iter());
+                    self.state.program = Some(program.clone());
+                    self.state.remaining = program.into();
                 }
             }
         }
-        unimplemented!()
+        Ok(())
     }
     /// Continue the program.
-    fn resume(&mut self) -> Result<()> {
+    fn resume(&mut self, context: &mut CoordContext) -> Result<()> {
         if self.status() != State::Waiting {
+            // TODO: Should we error instead of ignoring?
             log::warn!("Coordinator told to resume while not paused; ignoring.");
             return Ok(());
         }
-        unimplemented!()
+        self.state.status = State::Running;
+        self.advance(context)?;
+        Ok(())
     }
     /// Abort the program no matter where we are.
     fn hcf(&mut self) -> Result<()> {
-        unimplemented!()
+        self.addresses.pump.do_send(PumpMessage::Stop);
+        self.close_all();
+        // TODO: Should calling this method always send an error upstream?
+        Ok(())
     }
 }
 
 impl Actor for Coordinator {
-    type Context = Context<Self>;
+    type Context = CoordContext;
 }
 
 impl Handle<Message> for Coordinator {
     type Result = Result<()>;
-    fn handle(&mut self, message: Message, _context: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, message: Message, context: &mut Self::Context) -> Self::Result {
         match message {
-            Message::Continue => self.resume(),
+            Message::Continue => self.resume(context),
             Message::Stop => self.stop(None),
             Message::Halt => self.hcf(),
             Message::ExchangeStop(id) => self.stop(id),
