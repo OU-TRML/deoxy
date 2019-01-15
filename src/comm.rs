@@ -118,6 +118,8 @@ struct CoordState {
     buffer: Option<MotorId>,
     /// The current status of program execution.
     status: State,
+    /// The completed steps of the program.
+    completed: Vec<Action>,
 }
 
 /// Contains all the actual logic for controlling the system based on a specified program.
@@ -182,7 +184,7 @@ impl Coordinator {
                         coord.addresses[buffer].do_send(MotorMessage::Close);
                         coord.try_advance(context);
                     });
-                },
+                }
                 Action::Sleep(duration) => {
                     context.run_later(duration, Self::try_advance);
                 }
@@ -193,9 +195,10 @@ impl Coordinator {
                         coord.addresses.pump.do_send(PumpMessage::Stop);
                         coord.try_advance(context);
                     });
-                },
+                }
                 Action::Finish => unimplemented!(),
             }
+            self.state.completed.push(action);
             self.state.current = Some(action);
         } else {
             self.state.status = State::Stopped { early: false };
@@ -214,7 +217,6 @@ impl Coordinator {
             // Vec::truncate keeps n elements, but we don't want to keep the element at index.
             self.state.remaining.truncate(index);
         }
-        // TODO: Instead of doing this, mark the program as partially completed.
         self.state.program = None;
         Ok(())
     }
@@ -255,6 +257,8 @@ impl Coordinator {
         self.addresses.pump.do_send(PumpMessage::Stop);
         self.close_all();
         self.state.status = State::Stopped { early: true };
+        // We didn't finish the last step, so remove it from the list
+        self.state.completed.pop();
         // TODO: Notify user
         Ok(())
     }

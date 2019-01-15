@@ -123,18 +123,20 @@ fn warn(motor: &Motor) {
 impl Actor for Motor {
     type Context = Context<Self>;
     fn started(&mut self, context: &mut Self::Context) {
-        self.main_handle = context.run_interval(self.period, |motor, context| {
-            let result = motor.pin.set_high();
-            if result.is_err() {
-                warn(motor);
-            }
-            context.run_later(motor.pulse_width, |motor, _| {
-                let result = motor.pin.set_low();
+        self.main_handle = context
+            .run_interval(self.period, |motor, context| {
+                let result = motor.pin.set_high();
                 if result.is_err() {
                     warn(motor);
                 }
-            });
-        }).into();
+                context.run_later(motor.pulse_width, |motor, _| {
+                    let result = motor.pin.set_low();
+                    if result.is_err() {
+                        warn(motor);
+                    }
+                });
+            })
+            .into();
     }
 }
 
