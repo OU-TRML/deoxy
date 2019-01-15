@@ -7,6 +7,8 @@ use crate::{
     pin::{Error as PinError, Pin},
 };
 
+static RETRIES: u8 = 20;
+
 /// A message that can be sent to a motor to change its position.
 #[derive(Clone, Copy, Debug)]
 pub enum Message {
@@ -42,6 +44,8 @@ pub struct Motor {
     pulse_width: Duration,
     /// The handle to the main loop for this motor (for cancellation).
     main_handle: Option<SpawnHandle>,
+    /// The number of consecutive failures followed by retries.
+    retries: u8,
 }
 
 impl PartialEq for Motor {
@@ -96,6 +100,7 @@ impl Motor {
             pulse_width: *signal_range.start(),
             signal_range,
             main_handle: None,
+            retries: 0,
         })
     }
     /// Constructs a new motor with the given period and signal range on the given pin number.
@@ -113,11 +118,20 @@ impl Motor {
     }
 }
 
-/// Warns the user that pin output failed.
-// TODO: Track retries and eventually cancel.
-fn warn(motor: &Motor) {
+/// Warns the user that pin output failed and aborts if appropriate.
+// TODO: If we abort, tell the user.
+fn retry_or_abort(motor: &mut Motor, context: &mut Context<Motor>) {
+    motor.retries += 1;
     log::warn!("Pin {} output failed.", motor.pin.number);
-    log::info!("Will retry next time.");
+    // Use >= just in case somebody updates this elsewhere for whatever reason.
+    if motor.retries >= RETRIES {
+        log::error!("Maximum retries ({}) reached; aborting.", RETRIES);
+        if let Some(handle) = motor.main_handle.take() {
+            context.cancel_future(handle);
+        }
+    } else {
+        log::info!("Will retry next time ({}).", motor.retries);
+    }
 }
 
 impl Actor for Motor {
@@ -127,12 +141,12 @@ impl Actor for Motor {
             .run_interval(self.period, |motor, context| {
                 let result = motor.pin.set_high();
                 if result.is_err() {
-                    warn(motor);
+                    retry_or_abort(motor, context);
                 }
-                context.run_later(motor.pulse_width, |motor, _| {
+                context.run_later(motor.pulse_width, |motor, context| {
                     let result = motor.pin.set_low();
                     if result.is_err() {
-                        warn(motor);
+                        retry_or_abort(motor, context);
                     }
                 });
             })
