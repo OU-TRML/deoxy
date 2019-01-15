@@ -197,11 +197,11 @@ impl Coordinator {
                 Action::Finish => unimplemented!(),
             }
             self.state.current = Some(action);
-            Ok(self.state.current)
         } else {
             self.state.status = State::Stopped { early: false };
-            Ok(None)
+            self.state.current = None;
         }
+        Ok(self.state.current)
     }
     /// Clears the remaining program queue after the next perfusion.
     fn clear(&mut self) -> Result<()> {
