@@ -112,6 +112,14 @@ impl Motor {
 
 impl Actor for Motor {
     type Context = Context<Self>;
+    fn started(&mut self, context: &mut Self::Context) {
+        context.run_interval(self.period, |motor, context| {
+            motor.pin.set_high().unwrap();
+            context.run_later(motor.pulse_width, |motor, _| {
+                motor.pin.set_low().unwrap();
+            });
+        });
+    }
 }
 
 impl Handle<Message> for Motor {
