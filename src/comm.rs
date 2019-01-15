@@ -169,15 +169,31 @@ impl Coordinator {
     /// Moves to the next step of the program, returning the new current action.
     fn advance(&mut self, context: &mut CoordContext) -> Result<Option<Action>> {
         if !self.state.remaining.is_empty() {
+            self.state.status = State::Running;
             let action = self.state.remaining.remove(0);
             // Make sure to message something that will call advance again later!
+            // Usually this will be try_advance.
             match action {
-                Action::Perfuse(_buffer) => unimplemented!(),
+                Action::Perfuse(buffer) => {
+                    self.addresses[buffer].do_send(MotorMessage::Open);
+                    self.addresses.pump.do_send(PumpMessage::Perfuse);
+                    context.run_later(*DURATION, move |coord, context| {
+                        coord.addresses.pump.do_send(PumpMessage::Stop);
+                        coord.addresses[buffer].do_send(MotorMessage::Close);
+                        coord.try_advance(context);
+                    });
+                },
                 Action::Sleep(duration) => {
                     context.run_later(duration, Self::try_advance);
                 }
                 Action::Hail => self.state.status = State::Waiting,
-                Action::Drain => unimplemented!(),
+                Action::Drain => {
+                    self.addresses.pump.do_send(PumpMessage::Drain);
+                    context.run_later(*DURATION + Duration::from_millis(500), |coord, context| {
+                        coord.addresses.pump.do_send(PumpMessage::Stop);
+                        coord.try_advance(context);
+                    });
+                },
                 Action::Finish => unimplemented!(),
             }
             self.state.current = Some(action);
