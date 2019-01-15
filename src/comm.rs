@@ -254,7 +254,8 @@ impl Coordinator {
     fn hcf(&mut self) -> Result<()> {
         self.addresses.pump.do_send(PumpMessage::Stop);
         self.close_all();
-        // TODO: Should calling this method always send an error upstream?
+        self.state.status = State::Stopped { early: true };
+        // TODO: Notify user
         Ok(())
     }
 }
