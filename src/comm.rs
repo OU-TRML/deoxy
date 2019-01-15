@@ -243,7 +243,6 @@ impl Coordinator {
     /// Continue the program.
     fn resume(&mut self, context: &mut CoordContext) -> Result<()> {
         if self.status() != State::Waiting {
-            // TODO: Should we error instead of ignoring?
             log::warn!("Coordinator told to resume while not paused; ignoring.");
             return Ok(());
         }
