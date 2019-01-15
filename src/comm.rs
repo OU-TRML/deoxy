@@ -64,17 +64,30 @@ pub enum State {
     Running,
 }
 
-/// Contains all the actual logic for controlling the system based on a specified program.
+/// Contains communication necessities.
 #[derive(Debug)]
-pub struct Coordinator {
-    /// The pump driving everything.
-    pump: Pump,
-    /// The motors connected to various valves.
-    motors: Vec<Motor>,
+struct Addresses {
+    /// The addresses of each motor.
+    motors: Vec<Addr<Motor>>,
+    /// The address of the pump.
+    pump: Addr<Pump>,
+}
+
+impl Index<MotorId> for Addresses {
+    type Output = Addr<Motor>;
+    /// Returns the address of the motor associated with the given buffer.
+    fn index(&self, i: MotorId) -> &Self::Output {
+        &self.motors[i]
+    }
+}
+
+/// Contains program and buffer states.
+#[derive(Debug)]
+struct CoordState {
     /// The currently-in-progress (original) program.
     program: Option<Program>,
-    /// The iterator we're using, derived from the original program.
-    iter: Option<<Program as IntoIterator>::IntoIter>,
+    /// The steps remaining, derived from the original program.
+    remaining: Vec<Action>,
     /// The step we're currently running.
     current: Option<Action>,
     /// The most recent buffer.
@@ -83,14 +96,27 @@ pub struct Coordinator {
     status: State,
 }
 
+/// Contains all the actual logic for controlling the system based on a specified program.
+#[derive(Debug)]
+pub struct Coordinator {
+    /// The pump driving everything.
+    pump: Pump,
+    /// The motors connected to various valves.
+    motors: Vec<Motor>,
+    /// The handles giving us access to everything.
+    addresses: Addresses,
+    /// Encodes the state of the coordinator.
+    state: CoordState,
+}
+
 impl Coordinator {
     /// The in-progress program, if appropriate.
     pub fn program(&self) -> Option<&Program> {
-        self.program.as_ref()
+        self.state.program.as_ref()
     }
     /// The current status of the coordinator.
     pub fn status(&self) -> State {
-        self.status
+        self.state.status
     }
     /// Clears the remaining program queue after the next perfusion.
     fn clear(&mut self) -> Result<()> {
@@ -104,8 +130,24 @@ impl Coordinator {
             self.program = None;
             Ok(())
         } else {
-            Ok(())
+            self.state.status = State::Stopped { early: false };
+            Ok(None)
         }
+    }
+    /// Clears the remaining program queue after the next perfusion.
+    fn clear(&mut self) -> Result<()> {
+        if let Some(index) = self
+            .state
+            .remaining
+            .iter()
+            .position(|action| action.is_disjoint())
+        {
+            // Vec::truncate keeps n elements, but we don't want to keep the element at index.
+            self.state.remaining.truncate(index);
+        }
+        // TODO: Instead of doing this, mark the program as partially completed.
+        self.state.program = None;
+        Ok(())
     }
     /// Stop the program after the current step.
     ///
