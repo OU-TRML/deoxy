@@ -31,6 +31,10 @@ pub struct Protocol {
 }
 
 impl Protocol {
+    /// Creates a single-step protocol.
+    pub fn with_step(step: Step) -> Self {
+        Self { steps: vec![step] }
+    }
     /// Ensures the validity of the protocol.
     ///
     /// This method is called automatically during the conversion to `Program`, but it can also be
