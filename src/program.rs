@@ -112,7 +112,6 @@ impl Action {
     /// Whether this action can be performed in isolation from the preceding steps.
     ///
     /// If true, the coordinator will stop *before* this step when stopping early.
-    // TODO: name?
     pub fn is_disjoint(self) -> bool {
         match self {
             // These actions come after perfusing, so we can stop after the prior step if need be.
