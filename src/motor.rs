@@ -40,6 +40,8 @@ pub struct Motor {
     ///
     /// Changing this property will change the position of the motor.
     pulse_width: Duration,
+    /// The handle to the main loop for this motor (for cancellation).
+    main_handle: Option<SpawnHandle>,
 }
 
 impl PartialEq for Motor {
@@ -93,6 +95,7 @@ impl Motor {
             pin,
             pulse_width: *signal_range.start(),
             signal_range,
+            main_handle: None,
         })
     }
     /// Constructs a new motor with the given period and signal range on the given pin number.
@@ -106,17 +109,30 @@ impl Motor {
     where
         R: Into<RangeInclusive<Duration>>,
     {
-        Self::try_new(period, range, pin).unwrap()
+        Self::try_new(period, range, pin).expect("Motor construction failed.")
     }
+}
+
+/// Warns the user that pin output failed.
+// TODO: Track retries and eventually cancel.
+fn warn(motor: &Motor) {
+    log::warn!("Pin {} output failed.", motor.pin.number);
+    log::info!("Will retry next time.");
 }
 
 impl Actor for Motor {
     type Context = Context<Self>;
     fn started(&mut self, context: &mut Self::Context) {
         context.run_interval(self.period, |motor, context| {
-            motor.pin.set_high().unwrap();
+            let result = motor.pin.set_high();
+            if result.is_err() {
+                warn(motor);
+            }
             context.run_later(motor.pulse_width, |motor, _| {
-                motor.pin.set_low().unwrap();
+                let result = motor.pin.set_low();
+                if result.is_err() {
+                    warn(motor);
+                }
             });
         });
     }

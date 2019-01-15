@@ -5,7 +5,7 @@ use crate::{
     ValidateProtocolError,
 };
 
-use std::ops::Index;
+use std::{ops::Index, time::Duration};
 
 type Result<T> = std::result::Result<T, Error>;
 type CoordContext = Context<Coordinator>;
@@ -139,7 +139,21 @@ impl Coordinator {
                 Action::Perfuse(_buffer) => unimplemented!(),
                 Action::Sleep(duration) => {
                     context.run_later(duration, |coord, context| {
-                        coord.advance(context).unwrap();
+                        let result = coord.advance(context);
+                        if let Err(err) = result {
+                            // TODO: Notify user
+                            log::error!("Aborting due to program advance error: {:?}", err);
+                            let mut tries = 0;
+                            let mut result = coord.hcf();
+                            while tries < 5 && result.is_err() {
+                                std::thread::sleep(Duration::from_millis(200));
+                                result = coord.hcf();
+                                tries += 1;
+                            }
+                            if result.is_err() {
+                                log::error!("Could not fully stop protocol; please take caution!");
+                            }
+                        }
                     });
                 }
                 Action::Hail => self.state.status = State::Waiting,
