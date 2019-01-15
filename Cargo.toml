@@ -11,6 +11,9 @@ name = "deoxy"
 doc = false
 path = "src/main.rs"
 
+[dependencies]
+log = "0.4.6"
+
 [dependencies.actix-web]
 version = "0.7.18"
 optional = true

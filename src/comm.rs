@@ -132,8 +132,7 @@ impl Coordinator {
     /// Continue the program.
     fn resume(&mut self) -> Result<()> {
         if self.status() != State::Waiting {
-            // TODO: Set up logging façade.
-            println!("Coordinator told to resume while not paused; ignoring.");
+            log::warn!("Coordinator told to resume while not paused; ignoring.");
             return Ok(());
         }
         unimplemented!()
