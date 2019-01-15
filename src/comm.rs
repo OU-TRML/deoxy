@@ -5,7 +5,25 @@ use crate::{
     ValidateProtocolError,
 };
 
+use lazy_static::lazy_static;
+use uom::si::f64::*;
+use uom::si::time::second;
+use uom::si::volume::cubic_centimeter as milliliter;
+use uom::si::volume_rate::cubic_centimeter_per_second as milliliter_per_second;
+
 use std::{ops::Index, time::Duration};
+
+lazy_static! {
+    static ref VOLUME: Volume = Volume::new::<milliliter>(500.0);
+    static ref RATE: VolumeRate = VolumeRate::new::<milliliter_per_second>(5.0);
+    static ref TIME: Time = *VOLUME / *RATE;
+    static ref DURATION: Duration = {
+        let secs = TIME.get::<second>();
+        let nanos = ((secs - secs.floor()) * 1.0_E9).floor() as u32;
+        let secs = secs.floor() as u64;
+        Duration::new(secs, nanos)
+    };
+}
 
 type Result<T> = std::result::Result<T, Error>;
 type CoordContext = Context<Coordinator>;
