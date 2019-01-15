@@ -104,6 +104,21 @@ pub enum Action {
     Finish,
 }
 
+impl Action {
+    /// Whether this action can be performed in isolation from the preceding steps.
+    ///
+    /// If true, the coordinator will stop *before* this step when stopping early.
+    // TODO: name?
+    pub fn is_disjoint(self) -> bool {
+        match self {
+            // These actions come after perfusing, so we can stop after the prior step if need be.
+            Action::Sleep(_) | Action::Hail | Action::Finish | Action::Drain => true,
+            // Don't stop before perfusing (the sample should not be dry when we're done)
+            Action::Perfuse(_) => false,
+        }
+    }
+}
+
 /// A sequence of fine-grained actions.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Program {

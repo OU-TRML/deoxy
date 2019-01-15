@@ -37,11 +37,11 @@ mod pump;
 
 #[cfg(feature = "full")]
 pub use self::{
-    comm::{Coordinator, State as ExecState},
+    comm::{Coordinator, Error as CoordError, State as ExecState},
     motor::{Message as MotorMessage, Motor},
     pin::Error as PinError,
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
 };
 
 mod program;
-pub use self::program::{Action, Program, Protocol, Step, ValidateError as ValidateProgramError};
+pub use self::program::{Action, Program, Protocol, Step, ValidateError as ValidateProtocolError};
