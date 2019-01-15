@@ -123,7 +123,7 @@ fn warn(motor: &Motor) {
 impl Actor for Motor {
     type Context = Context<Self>;
     fn started(&mut self, context: &mut Self::Context) {
-        context.run_interval(self.period, |motor, context| {
+        self.main_handle = context.run_interval(self.period, |motor, context| {
             let result = motor.pin.set_high();
             if result.is_err() {
                 warn(motor);
@@ -134,7 +134,7 @@ impl Actor for Motor {
                     warn(motor);
                 }
             });
-        });
+        }).into();
     }
 }
 
