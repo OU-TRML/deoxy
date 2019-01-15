@@ -130,7 +130,25 @@ impl Coordinator {
             addr.do_send(MotorMessage::Close);
         }
     }
-    /// Moves to the next step of the protocol, returning the new current action.
+    /// Attempts to run the next step of the program, aborting and cleaning up on failure.
+    fn try_advance(&mut self, context: &mut CoordContext) {
+        let result = self.advance(context);
+        if let Err(err) = result {
+            // TODO: Notify user
+            log::error!("Aborting due to program advance error: {:?}", err);
+            let mut tries = 0;
+            let mut result = self.hcf();
+            while tries < 5 && result.is_err() {
+                std::thread::sleep(Duration::from_millis(200));
+                result = self.hcf();
+                tries += 1;
+            }
+            if result.is_err() {
+                log::error!("Could not fully stop program; please take caution!");
+            }
+        }
+    }
+    /// Moves to the next step of the program, returning the new current action.
     fn advance(&mut self, context: &mut CoordContext) -> Result<Option<Action>> {
         if !self.state.remaining.is_empty() {
             let action = self.state.remaining.remove(0);
@@ -138,23 +156,7 @@ impl Coordinator {
             match action {
                 Action::Perfuse(_buffer) => unimplemented!(),
                 Action::Sleep(duration) => {
-                    context.run_later(duration, |coord, context| {
-                        let result = coord.advance(context);
-                        if let Err(err) = result {
-                            // TODO: Notify user
-                            log::error!("Aborting due to program advance error: {:?}", err);
-                            let mut tries = 0;
-                            let mut result = coord.hcf();
-                            while tries < 5 && result.is_err() {
-                                std::thread::sleep(Duration::from_millis(200));
-                                result = coord.hcf();
-                                tries += 1;
-                            }
-                            if result.is_err() {
-                                log::error!("Could not fully stop protocol; please take caution!");
-                            }
-                        }
-                    });
+                    context.run_later(duration, Self::try_advance);
                 }
                 Action::Hail => self.state.status = State::Waiting,
                 Action::Drain => unimplemented!(),
