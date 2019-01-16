@@ -9,10 +9,8 @@ sudo: false
 install:
   - rustup component add rustfmt
   - rustup component add clippy
-  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || rustup target add wasm32-unknown-unknown
 script:
   - cargo fmt --all -- --check
   - cargo clippy
-  - cargo build --features "stub" --verbose
-  - cargo test --features "stub" --verbose
-  - test "${TRAVIS_RUST_VERSION//./_}" != "nightly" || cargo build --no-default-features --features wasm --target wasm32-unknown-unknown
+  - cargo build --features stub --verbose
+  - cargo test --features stub --verbose --all

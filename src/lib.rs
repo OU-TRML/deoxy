@@ -18,32 +18,22 @@
     clippy::wrong_pub_self_convention
 )]
 
-/// Used to uniquely identify motors/valves.
-pub type MotorId = usize;
+pub use deoxy_core::*;
 
-#[cfg(feature = "full")]
 mod actix {
     pub use actix_web::actix::{
         Actor, Addr, AsyncContext, Context, Handler as Handle, Message as ActixMessage, SpawnHandle,
     };
 }
 
-#[cfg(feature = "full")]
 mod comm;
-#[cfg(feature = "full")]
 mod motor;
-#[cfg(feature = "full")]
 pub(crate) mod pin;
-#[cfg(feature = "full")]
 mod pump;
 
-#[cfg(feature = "full")]
 pub use self::{
     comm::{Coordinator, Error as CoordError, State as ExecState},
     motor::{Message as MotorMessage, Motor},
     pin::Error as PinError,
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
 };
-
-mod program;
-pub use self::program::{Action, Program, Protocol, Step, ValidateError as ValidateProtocolError};
