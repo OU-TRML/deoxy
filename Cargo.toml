@@ -16,8 +16,9 @@ uom = "0.21.0"
 uuid = { version = "0.7", features = ["serde", "v4"] }
 
 [features]
-default = []
+default = ["serde"]
 stub = []
+serde = ["deoxy-core/use_serde"]
 
 [badges]
 travis-ci = { repository = "aehmlo/deoxy", branch = "master" }

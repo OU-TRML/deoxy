@@ -5,6 +5,8 @@ use crate::MotorId;
 
 /// Represents an error encountered while validating a protocol.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase"))]
 pub enum ValidateError {
     /// The protocol is empty and so cannot be valid.
     Empty,
@@ -14,6 +16,8 @@ pub enum ValidateError {
 
 /// Represents a high-level step to be taken in a protocol.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase"))]
 pub enum Step {
     /// The specified motor should fully perfuse the tissue for the given duration (or until
     /// otherwise instructed if `None`).
@@ -26,6 +30,8 @@ pub enum Step {
 ///
 /// This is what the end user will feed in (by way of a form).
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase", transparent))]
 pub struct Protocol {
     steps: Vec<Step>,
 }
@@ -94,6 +100,8 @@ impl Protocol {
 
 /// Represents a specific action to be run.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase"))]
 pub enum Action {
     /// Perfuse with the specified solution until a full volume is reached, then close the valve
     /// and turn off the pump.
@@ -124,6 +132,8 @@ impl Action {
 
 /// A sequence of fine-grained actions.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase", transparent))]
 pub struct Program {
     actions: Vec<Action>,
 }

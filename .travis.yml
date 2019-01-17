@@ -12,5 +12,6 @@ install:
 script:
   - cargo fmt --all -- --check
   - cargo clippy
+  - cargo check --no-default-features
   - cargo build --features stub --verbose
   - cargo test --features stub --verbose --all

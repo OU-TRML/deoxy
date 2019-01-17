@@ -5,3 +5,9 @@ authors = ["Alex Hamilton <alex.hamilton@ou.edu>"]
 edition = "2018"
 
 [dependencies]
+serde = { version = "1.0.84", optional = true }
+serde_derive = { version = "1.0.84", optional = true }
+
+[features]
+default = []
+use_serde = ["serde", "serde_derive"]
