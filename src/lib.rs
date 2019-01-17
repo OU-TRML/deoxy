@@ -30,6 +30,7 @@ mod comm;
 mod motor;
 pub(crate) mod pin;
 mod pump;
+pub mod server;
 
 pub use self::{
     comm::{Coordinator, Error as CoordError, State as ExecState},

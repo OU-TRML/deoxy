@@ -13,6 +13,7 @@ gpio = "0.4.1"
 lazy_static = "1.2.0"
 log = "0.4.6"
 uom = "0.21.0"
+uuid = { version = "0.7", features = ["serde", "v4"] }
 
 [features]
 default = []

@@ -10,6 +10,7 @@ use uom::si::f64::*;
 use uom::si::time::second;
 use uom::si::volume::cubic_centimeter as milliliter;
 use uom::si::volume_rate::cubic_centimeter_per_second as milliliter_per_second;
+use uuid::Uuid;
 
 use std::{ops::Index, time::Duration};
 
@@ -107,19 +108,21 @@ impl Index<MotorId> for Addresses {
 
 /// Contains program and buffer states.
 #[derive(Debug)]
-struct CoordState {
+pub(crate) struct CoordState {
     /// The currently-in-progress (original) program.
-    program: Option<Program>,
+    pub(crate) program: Option<Program>,
     /// The steps remaining, derived from the original program.
-    remaining: Vec<Action>,
+    pub(crate) remaining: Vec<Action>,
     /// The step we're currently running.
-    current: Option<Action>,
+    pub(crate) current: Option<Action>,
     /// The most recent buffer.
-    buffer: Option<MotorId>,
+    pub(crate) buffer: Option<MotorId>,
     /// The current status of program execution.
-    status: State,
+    pub(crate) status: State,
     /// The completed steps of the program.
-    completed: Vec<Action>,
+    pub(crate) completed: Vec<Action>,
+    /// The uuid associated with the running (or most recently-completed) job.
+    pub(crate) uuid: Option<Uuid>,
 }
 
 /// Contains all the actual logic for controlling the system based on a specified program.
@@ -132,7 +135,7 @@ pub struct Coordinator {
     /// The handles giving us access to everything.
     addresses: Addresses,
     /// Encodes the state of the coordinator.
-    state: CoordState,
+    pub(crate) state: CoordState,
 }
 
 impl Coordinator {
