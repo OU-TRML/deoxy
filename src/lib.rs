@@ -30,6 +30,7 @@ mod comm;
 mod motor;
 pub(crate) mod pin;
 mod pump;
+#[cfg(feature = "server")]
 pub mod server;
 
 pub use self::{
