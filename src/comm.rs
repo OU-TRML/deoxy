@@ -48,6 +48,8 @@ type CoordContext = Context<Coordinator>;
 pub enum Error {
     /// An error was encountered in converting a protocol to a program.
     ProtocolConversion(ValidateProtocolError),
+    /// We tried to start a new protocol while one was already running.
+    Busy,
 }
 
 impl From<ValidateProtocolError> for Error {
@@ -56,8 +58,9 @@ impl From<ValidateProtocolError> for Error {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-enum Message {
+/// A message sent to control the coordinator.
+#[derive(Clone, Debug)]
+pub enum Message {
     /// The user has instructed us to move on to the next step.
     Continue,
     /// We have been asked to immediately stop the program.
@@ -69,6 +72,11 @@ enum Message {
     Stop,
     /// We have been asked to finish this step, exchange the buffer, and stop.
     ExchangeStop(MotorId),
+    /// The user has instructed us to start a new protocol.
+    ///
+    /// If the second parameter is specified, it is used as the label for the job; otherwise, one
+    /// is generated.
+    Start(Protocol, Option<Uuid>),
 }
 
 impl ActixMessage for Message {
@@ -77,10 +85,14 @@ impl ActixMessage for Message {
 
 /// Represents a coordinator state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase"))]
 pub enum State {
     /// The coordinator is waiting for user input.
     Waiting,
     /// The coordinator has stopped and is waiting for further instruction.
+    ///
+    /// This state is the default if the coordinator has not yet run a program.
     Stopped {
         /// Whether execution stopped early (was aborted).
         early: bool,
@@ -265,6 +277,34 @@ impl Coordinator {
         // TODO: Notify user
         Ok(())
     }
+    /// Whether we're in the stopped state.
+    pub fn is_stopped(&self) -> bool {
+        match self.state.status {
+            State::Stopped { .. } => true,
+            State::Running | State::Waiting => false,
+        }
+    }
+    /// Start the given protocol, if we can.
+    fn start(
+        &mut self,
+        protocol: &Protocol,
+        label: Option<Uuid>,
+        context: &mut CoordContext,
+    ) -> Result<()> {
+        let program = protocol.as_program()?;
+        if self.is_stopped() {
+            let id = label.unwrap_or_else(Uuid::new_v4);
+            self.state.program = Some(program.clone());
+            self.state.remaining = program.into();
+            self.state.current = None;
+            self.state.buffer = None;
+            self.state.status = State::Running;
+            self.state.completed.clear();
+            self.state.uuid = Some(id);
+            self.advance(context)?;
+        }
+        Ok(())
+    }
 }
 
 impl Actor for Coordinator {
@@ -279,6 +319,7 @@ impl Handle<Message> for Coordinator {
             Message::Stop => self.stop(None),
             Message::Halt => self.hcf(),
             Message::ExchangeStop(id) => self.stop(id),
+            Message::Start(proto, label) => self.start(&proto, label, context),
         }
     }
 }

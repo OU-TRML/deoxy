@@ -18,6 +18,10 @@
     clippy::wrong_pub_self_convention
 )]
 
+#[cfg(feature = "use_serde")]
+#[cfg_attr(feature = "use_serde", macro_use)]
+extern crate serde_derive;
+
 pub use deoxy_core::*;
 
 mod actix {

@@ -9,6 +9,10 @@ fn job_app(state: state::State) -> App<state::State> {
         .route("/", Method::GET, job::status)
         .route("/", Method::HEAD, job::status)
         .route("/", Method::POST, job::start)
+        .resource("/{job}", |r| r.method(Method::DELETE).with(job::halt))
+        .resource("/{job}/resume", |r| {
+            r.method(Method::POST).with(job::resume)
+        })
 }
 
 /// Returns an actix-web app for handling protocols.

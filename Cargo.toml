@@ -14,12 +14,15 @@ lazy_static = "1.2.0"
 log = "0.4.6"
 uom = "0.21.0"
 uuid = { version = "0.7", features = ["serde", "v4"] }
+serde_derive = { version = "1.0.84", optional = true }
+serde = { version = "1.0.84", optional = true }
+futures = { version = "0.1.25", optional = true }
 
 [features]
 default = ["server"]
 stub = []
-serde = ["deoxy-core/use_serde"]
-server = ["serde"]
+use_serde = ["deoxy-core/use_serde", "serde_derive", "serde"]
+server = ["use_serde", "futures"]
 
 [badges]
 travis-ci = { repository = "aehmlo/deoxy", branch = "master" }
