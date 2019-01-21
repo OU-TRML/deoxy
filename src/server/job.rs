@@ -4,13 +4,13 @@ use crate::{
     Action, MotorId, Program, Protocol,
 };
 use actix_web::{
-    http::header, AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Json, Path, Responder,
-    ResponseError,
+    http::header, AsyncResponder, FromRequest, HttpMessage, HttpRequest, HttpResponse, Json, Path,
+    Responder, ResponseError,
 };
 use futures::prelude::*;
 use uuid::Uuid;
 
-use std::fmt;
+use std::{fmt, ops::Deref};
 
 /// Represents a (buffer-exchange) job to be run.
 #[derive(Deserialize, Serialize)]
@@ -31,6 +31,7 @@ pub enum Error {
     Mailbox(actix_web::actix::MailboxError),
     InvalidUuid,
     IncorrectUuid,
+    ActixWeb(actix_web::Error),
 }
 
 impl From<crate::comm::Error> for Error {
@@ -51,6 +52,12 @@ impl From<actix_web::actix::MailboxError> for Error {
     }
 }
 
+impl From<actix_web::Error> for Error {
+    fn from(err: actix_web::Error) -> Self {
+        Error::ActixWeb(err)
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -59,6 +66,7 @@ impl fmt::Display for Error {
             Error::Mailbox(e) => e.fmt(f),
             Error::InvalidUuid => write!(f, "Invalid UUID"),
             Error::IncorrectUuid => write!(f, "Specified job is no longer active."),
+            Error::ActixWeb(e) => e.fmt(f),
         }
     }
 }
@@ -121,26 +129,54 @@ pub fn start(req: HttpRequest<AppState>) -> Box<Future<Item = HttpResponse, Erro
         .responder()
 }
 
-// TODO: Custom extractor for UUIDs
-// TODO: Custom middleware enforcing correct UUIDs
+/// Wrapper type around `Uuid`.
+///
+/// This struct implements some convenience methods and helps us avoid the orphan rules.
+pub struct UUID(Uuid);
+
+impl UUID {
+    /// Whether this is the UUID of the currently-running job.
+    pub fn is_current(&self, state: &AppState) -> bool {
+        let current = state.coord.state.uuid;
+        current == Some(**self)
+    }
+}
+
+impl Deref for UUID {
+    type Target = Uuid;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<Uuid> for UUID {
+    fn from(uuid: Uuid) -> Self {
+        UUID(uuid)
+    }
+}
+
+impl<S> FromRequest<S> for UUID {
+    type Config = ();
+    type Result = Result<Self, Error>;
+    fn from_request(req: &HttpRequest<S>, _: &Self::Config) -> Self::Result {
+        let path = Path::<String>::extract(req).map_err(Error::from);
+        path.and_then(|path| Uuid::parse_str(&path.into_inner()).map_err(|_| Error::InvalidUuid))
+            .map(UUID)
+    }
+}
+
 #[allow(clippy::needless_pass_by_value)]
-fn message_for_job(
+fn message_uuid(
     message: Message,
-    path: Path<String>,
+    uuid: UUID,
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = Error>> {
-    let coord = &req.state().coord;
-    let current = coord.state.uuid;
-    let uuid = Uuid::parse_str(&path.into_inner()).ok();
-    (if uuid.is_some() {
-        if current == uuid {
-            let addr = &req.state().addr;
-            Ok(addr.send(message))
-        } else {
-            Err(Error::IncorrectUuid)
-        }
+    let state = &req.state();
+    (if uuid.is_current(&state) {
+        let addr = &state.addr;
+        Ok(addr.send(message))
     } else {
-        Err(Error::InvalidUuid)
+        Err(Error::IncorrectUuid)
     })
     .into_future()
     .map(|_| HttpResponse::NoContent().finish())
@@ -152,17 +188,17 @@ fn message_for_job(
 /// We require the user to specify the job in question so that there can be no ambiguity.
 #[allow(clippy::needless_pass_by_value)]
 pub fn resume(
-    path: Path<String>,
+    uuid: UUID,
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = Error>> {
-    message_for_job(Message::Continue, path, req)
+    message_uuid(Message::Continue, uuid, req)
 }
 
 /// Immediately stops the running job.
 #[allow(clippy::needless_pass_by_value)]
 pub fn halt(
-    path: Path<String>,
+    uuid: UUID,
     req: HttpRequest<AppState>,
 ) -> Box<Future<Item = HttpResponse, Error = Error>> {
-    message_for_job(Message::Halt, path, req)
+    message_uuid(Message::Halt, uuid, req)
 }
