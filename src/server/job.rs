@@ -202,3 +202,15 @@ pub fn halt(
 ) -> Box<Future<Item = HttpResponse, Error = Error>> {
     message_uuid(Message::Halt, uuid, req)
 }
+
+/// Stops the running job cleanly.
+///
+/// If a buffer ID is given, the buffer will be exchanged into this one before stopping.
+#[allow(clippy::needless_pass_by_value)]
+pub fn stop(
+    uuid: UUID,
+    req: HttpRequest<AppState>,
+) -> Box<Future<Item = HttpResponse, Error = Error>> {
+    let message = Message::Stop;
+    message_uuid(message, uuid, req)
+}
