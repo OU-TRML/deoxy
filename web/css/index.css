@@ -1,0 +1,124 @@
+/* General styles */
+
+body {
+	background-color: #222;
+	color: #eee;
+	box-sizing: border-box;
+	font-family: "Andale Mono", "Courier New";
+	display: flex;
+	font-size: 16px;
+	flex-wrap: wrap;
+}
+
+/* First-level divs (flex items) */
+body > div {
+	margin: 0 3em;
+}
+
+/* Buffers */
+
+#buffers td {
+	padding: 0.2em;
+}
+
+#buffers .buffer .index {
+	text-align: center;
+}
+
+#buffers .buffer:nth-of-type(5n+2) .index, .color.one {
+	color: red;
+}
+
+#buffers .buffer:nth-of-type(5n+3) .index, .color.two {
+	color: #00ff00;
+}
+
+#buffers .buffer:nth-of-type(5n+4) .index, .color.three {
+	color: yellow;
+}
+
+#buffers .buffer:nth-of-type(5n+5) .index, .color.four {
+	color: inherit;
+}
+
+#buffers .buffer:nth-of-type(5n+6) .index, .color.five {
+	color: #7777ff;
+}
+
+/* Protocol */
+
+#protocol ol {
+	font-size: 1.1em;
+	line-height: 1.4;
+}
+
+.verb {
+	color: #f92672;
+}
+
+.time {
+	color: inherit;
+}
+
+.change {
+	border-bottom: 1px dashed;
+}
+
+#protocol input, #protocol select, #protocol select option {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	outline: none;
+	background: none;
+	background-color: #222;
+	border: none;
+	font: inherit;
+}
+
+#protocol select, #protocol input[type = "button"] {
+	cursor: pointer;
+}
+
+#protocol input[type = "number"], #protocol select {
+	border-bottom: 1px dashed;
+	font-size: inherit;
+	text-align: center;
+}
+
+#protocol select:hover, #protocol input[type = "number"]:hover {
+	border-bottom: 1px solid;
+}
+
+#protocol input[type = "number"] { 
+	-moz-appearance: textfield;
+	appearance: textfield;
+	margin: 0;
+}
+
+#protocol input[type = "number"]::-webkit-inner-spin-button, 
+#protocol input[type = "number"]::-webkit-outer-spin-button { 
+	-webkit-appearance: none; 
+	margin: 0; 
+}
+
+#protocol input[type = "number"] {
+	width: 1.6em;
+}
+
+#protocol select {
+	padding: 0;
+	margin: 0;
+}
+
+#protocol #start {
+	margin: 0.5em 0 0 2.3em;
+	padding: 0.2em 0.5em;
+	color: inherit;
+	font-size: 1.1em;
+	border: 1px dashed;
+	border-radius: 0.2em;
+}
+
+#protocol #start:hover {
+	border: 1px solid;
+}

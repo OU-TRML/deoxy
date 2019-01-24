@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>deoxy</title>
+	<link rel="stylesheet" type="text/css" href="css/index.css" />
+</head>
+<body>
+
+<div id="buffers">
+<h1>Buffers</h1>
+<table>
+<tr><th>Index</th><th>Label</th><th>Volume</th></tr>
+<tr class="buffer"><td class="index">1</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">2</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">3</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">4</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">5</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">6</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">7</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">8</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">9</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+<tr class="buffer"><td class="index">10</td><td class="label"><input type="text" name="label[]" placeholder="Water" /></td><td><input type="text" name="volume[]" required /></td></tr>
+</table>
+</div>
+
+<div id="protocol">
+<h1>Protocol</h1>
+<ol>
+<li><span class="verb perfuse">Perfuse</span> with <select class="color three"><option value="3">sodium hydroxide</option></select>.</li>
+<li><span class="verb wait change">Wait</span> for user confirmation.</li>
+<li><span class="verb drain">Drain</span> <span class="color three">sodium hydroxide</span>.</li>
+<li><span class="verb perfuse">Perfuse</span> with <select class="color four"><option value="4">SDS</option></select> for <input type="number" class="time" value="10" min="1" /> <span class="time">minutes</span>.</li>
+<li><span class="verb drain">Drain</span> <span class="color four">SDS</span>.</li>
+<li><span class="verb perfuse">Perfuse</span> with <select class="color one" name="buffers[]"><option value="1">water</option></select>.</li>
+<li><select class="verb stop"><option value="0">Stop</option><option value="1">Perfuse</option></select>.</li>
+</ol>
+<input type="button" id="start" value="Start" />
+</div>
+
+</body>
+</html>
