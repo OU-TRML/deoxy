@@ -12,6 +12,8 @@ pub enum ValidateError {
     Empty,
     /// The last step is not an indefinite perfusion.
     Last(Step),
+    /// A perfusion has a duration of zero.
+    ZeroDuration,
 }
 
 /// Represents a high-level step to be taken in a protocol.
@@ -53,7 +55,17 @@ impl Protocol {
     ///
     /// Currently, the last step is the only checked step.
     pub fn validate(&self) -> Result<(), ValidateError> {
-        if let Some(last) = self.steps.last() {
+        let is_zero_perfusion = |step: &Step| {
+            let Step::Perfuse(_, duration) = step;
+            if let Some(duration) = *duration {
+                duration == Duration::new(0, 0)
+            } else {
+                false
+            }
+        };
+        if self.steps.iter().any(is_zero_perfusion) {
+            Err(ValidateError::ZeroDuration)
+        } else if let Some(last) = self.steps.last() {
             match last {
                 Step::Perfuse(_, duration) => {
                     if duration.is_none() {
