@@ -123,14 +123,17 @@ impl Pump {
     }
     /// Switches the pump to the forward direction.
     pub fn perfuse(&mut self) -> Result<Option<Direction>> {
+        log::trace!("Setting pump to perfuse");
         self.set_direction(Direction::Forward)
     }
     /// Switches the pump to the reverse direction.
     pub fn drain(&mut self) -> Result<Option<Direction>> {
+        log::trace!("Setting pump to drain");
         self.set_direction(Direction::Backward)
     }
     /// Stops the pump.
     pub fn stop(&mut self) -> Result<Option<Direction>> {
+        log::trace!("Stopping pump");
         self.set_direction(None)
     }
     /// Whether the pump is currently stopped.

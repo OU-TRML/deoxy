@@ -73,14 +73,21 @@ impl Motor {
         let step = delta / range;
         // Multiply the step by the desired angle to get the offset from the baseline (∆T).
         let offset = step * angle.into();
+        log::trace!(
+            "Setting motor angle to {} (pulse width: {:?})",
+            angle,
+            start + offset
+        );
         self.pulse_width = start + offset;
     }
     /// Sets the motor to the closed position.
     pub fn close(&mut self) {
+        log::trace!("Closing motor.");
         self.set_angle(0)
     }
     /// Sets the motor to the open position (angle of 90º).
     pub fn open(&mut self) {
+        log::trace!("Opening motor.");
         self.set_angle(90)
     }
     ///
@@ -137,6 +144,7 @@ fn retry_or_abort(motor: &mut Motor, context: &mut Context<Motor>) {
 impl Actor for Motor {
     type Context = Context<Self>;
     fn started(&mut self, context: &mut Self::Context) {
+        log::trace!("Motor actor started.");
         self.main_handle = context
             .run_interval(self.period, |motor, context| {
                 let result = motor.pin.set_high();
