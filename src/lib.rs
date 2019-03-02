@@ -31,6 +31,7 @@ mod actix {
 }
 
 mod comm;
+mod config;
 mod motor;
 pub(crate) mod pin;
 mod pump;
