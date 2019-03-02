@@ -35,7 +35,8 @@ pub enum Step {
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase", transparent))]
 pub struct Protocol {
-    steps: Vec<Step>,
+    /// The component steps of the protocol.
+    pub steps: Vec<Step>,
 }
 
 impl Protocol {
