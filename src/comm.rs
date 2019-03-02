@@ -117,6 +117,12 @@ pub enum State {
     Running,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        State::Stopped { early: false }
+    }
+}
+
 /// Contains communication necessities.
 #[derive(Debug)]
 struct Addresses {
@@ -134,8 +140,15 @@ impl Index<MotorId> for Addresses {
     }
 }
 
-/// Contains program and buffer states.
+/// Stores motors and pump until it's time to start them.
 #[derive(Debug)]
+struct Devices {
+    motors: Vec<Motor>,
+    pump: Pump,
+}
+
+/// Contains program and buffer states.
+#[derive(Debug, Default)]
 pub(crate) struct CoordState {
     /// The currently-in-progress (original) program.
     pub(crate) program: Option<Program>,
@@ -156,17 +169,41 @@ pub(crate) struct CoordState {
 /// Contains all the actual logic for controlling the system based on a specified program.
 #[derive(Debug)]
 pub struct Coordinator {
-    /// The pump driving everything.
-    pump: Pump,
-    /// The motors connected to various valves.
-    motors: Vec<Motor>,
+    /// The devices this coordinator controls.
+    ///
+    /// Once the coordinator is started, this will be `None`.
+    devices: Option<Devices>,
     /// The handles giving us access to everything.
-    addresses: Addresses,
+    ///
+    /// This will be `None` until the coordinator is started.
+    // TODO: Express this better (and maybe start unwrapping)
+    addresses: Option<Addresses>,
     /// Encodes the state of the coordinator.
     pub(crate) state: CoordState,
 }
 
 impl Coordinator {
+    /// Initializes a coordinator and prepares it for running.
+    pub fn try_new(config: Config) -> Result<Self> {
+        let pump = Pump::try_new(config.pump.pins)?;
+        let motors = config
+            .motors
+            .into_iter()
+            .map(|spec| {
+                // TODO: Implement labels
+                let period = spec.period;
+                let range = spec.range[0]..=spec.range[1];
+                let pin = spec.pin;
+                Motor::try_new(period, range, pin)
+            })
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let devices = Some(Devices { motors, pump });
+        Ok(Self {
+            devices,
+            addresses: None,
+            state: CoordState::default(),
+        })
+    }
     /// The in-progress program, if appropriate.
     pub fn program(&self) -> Option<&Program> {
         self.state.program.as_ref()
@@ -177,7 +214,7 @@ impl Coordinator {
     }
     /// Closes all valves.
     fn close_all(&self) {
-        for addr in &self.addresses.motors {
+        for addr in self.addresses.iter().flat_map(|a| &a.motors) {
             addr.do_send(MotorMessage::Close);
         }
     }
@@ -202,35 +239,46 @@ impl Coordinator {
     /// Moves to the next step of the program, returning the new current action.
     fn advance(&mut self, context: &mut CoordContext) -> Result<Option<Action>> {
         if !self.state.remaining.is_empty() {
-            self.state.status = State::Running;
-            let action = self.state.remaining.remove(0);
-            // Make sure to message something that will call advance again later!
-            // Usually this will be try_advance.
-            match action {
-                Action::Perfuse(buffer) => {
-                    self.addresses[buffer].do_send(MotorMessage::Open);
-                    self.addresses.pump.do_send(PumpMessage::Perfuse);
-                    context.run_later(*DURATION, move |coord, context| {
-                        coord.addresses.pump.do_send(PumpMessage::Stop);
-                        coord.addresses[buffer].do_send(MotorMessage::Close);
-                        coord.try_advance(context);
-                    });
+            if let Some(ref addresses) = self.addresses {
+                self.state.status = State::Running;
+                let action = self.state.remaining.remove(0);
+                // Make sure to message something that will call advance again later!
+                // Usually this will be try_advance.
+                match action {
+                    Action::Perfuse(buffer) => {
+                        addresses[buffer].do_send(MotorMessage::Open);
+                        addresses.pump.do_send(PumpMessage::Perfuse);
+                        context.run_later(*DURATION, move |coord, context| {
+                            if let Some(ref addresses) = coord.addresses {
+                                addresses.pump.do_send(PumpMessage::Stop);
+                                addresses[buffer].do_send(MotorMessage::Close);
+                                coord.try_advance(context);
+                            }
+                        });
+                    }
+                    Action::Sleep(duration) => {
+                        context.run_later(duration, Self::try_advance);
+                    }
+                    Action::Hail => self.state.status = State::Waiting,
+                    Action::Drain => {
+                        if let Some(ref addresses) = self.addresses {
+                            addresses.pump.do_send(PumpMessage::Drain);
+                        }
+                        context.run_later(
+                            *DURATION + Duration::from_millis(500),
+                            |coord, context| {
+                                if let Some(ref addresses) = coord.addresses {
+                                    addresses.pump.do_send(PumpMessage::Stop);
+                                    coord.try_advance(context);
+                                }
+                            },
+                        );
+                    }
+                    Action::Finish => unimplemented!(),
                 }
-                Action::Sleep(duration) => {
-                    context.run_later(duration, Self::try_advance);
-                }
-                Action::Hail => self.state.status = State::Waiting,
-                Action::Drain => {
-                    self.addresses.pump.do_send(PumpMessage::Drain);
-                    context.run_later(*DURATION + Duration::from_millis(500), |coord, context| {
-                        coord.addresses.pump.do_send(PumpMessage::Stop);
-                        coord.try_advance(context);
-                    });
-                }
-                Action::Finish => unimplemented!(),
+                self.state.completed.push(action);
+                self.state.current = Some(action);
             }
-            self.state.completed.push(action);
-            self.state.current = Some(action);
         } else {
             self.state.status = State::Stopped { early: false };
             self.state.current = None;
@@ -285,7 +333,9 @@ impl Coordinator {
     }
     /// Abort the program no matter where we are.
     fn hcf(&mut self) -> Result<()> {
-        self.addresses.pump.do_send(PumpMessage::Stop);
+        if let Some(ref addresses) = self.addresses {
+            addresses.pump.do_send(PumpMessage::Stop);
+        }
         self.close_all();
         self.state.status = State::Stopped { early: true };
         // We didn't finish the last step, so remove it from the list
@@ -325,6 +375,22 @@ impl Coordinator {
 
 impl Actor for Coordinator {
     type Context = CoordContext;
+    fn started(&mut self, _ctx: &mut Self::Context) {
+        if let Some(devices) = self.devices.take() {
+            let motors = devices
+                .motors
+                .into_iter()
+                .map(Actor::start)
+                .collect::<Vec<_>>();
+            let pump = devices.pump.start();
+            let addresses = Addresses { pump, motors };
+            self.addresses = Some(addresses);
+        }
+    }
+    fn stopped(&mut self, _ctx: &mut Self::Context) {
+        // Redundant due to the impending drop, but I like to be explicit
+        self.addresses = None;
+    }
 }
 
 impl Handle<Message> for Coordinator {
