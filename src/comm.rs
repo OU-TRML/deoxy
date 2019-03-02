@@ -12,7 +12,7 @@ use uom::si::volume::cubic_centimeter as milliliter;
 use uom::si::volume_rate::cubic_centimeter_per_second as milliliter_per_second;
 use uuid::Uuid;
 
-use std::{ops::Index, time::Duration};
+use std::{fmt, ops::Index, time::Duration};
 
 lazy_static! {
     static ref VOLUME: Volume = Volume::new::<milliliter>(500.0);
@@ -44,12 +44,14 @@ type CoordContext = Context<Coordinator>;
 ///
 /// Once ([rust-lang/rust-clippy#3652](https://github.com/rust-lang/rust-clippy/issues/3652)) is
 /// merged, you are advised to use that lint to enforce this with tooling.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub enum Error {
     /// An error was encountered in converting a protocol to a program.
     ProtocolConversion(ValidateProtocolError),
     /// We tried to start a new protocol while one was already running.
     Busy,
+    /// A pin-related initialization error occured.
+    Pin(PinError),
 }
 
 impl From<ValidateProtocolError> for Error {
@@ -57,6 +59,20 @@ impl From<ValidateProtocolError> for Error {
         Error::ProtocolConversion(err)
     }
 }
+
+impl From<PinError> for Error {
+    fn from(err: PinError) -> Self {
+        Error::Pin(err)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Coordinator error: {:?}", self)
+    }
+}
+
+impl std::error::Error for Error {}
 
 /// A message sent to control the coordinator.
 #[derive(Clone, Debug)]
