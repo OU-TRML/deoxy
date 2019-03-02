@@ -79,12 +79,10 @@ impl Pin {
     }
     /// Sets the pin high.
     pub fn set_high(&mut self) -> Result {
-        log::trace!("Setting pin {} high", self.number);
         self.set(true)
     }
     /// Sets the pin low.
     pub fn set_low(&mut self) -> Result {
-        log::trace!("Setting pin {} low", self.number);
         self.set(false)
     }
 }
