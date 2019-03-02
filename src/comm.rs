@@ -1,8 +1,8 @@
 //! Communication utilities.
 use crate::actix::*;
 use crate::{
-    Action, Motor, MotorId, MotorMessage, Program, Protocol, Pump, PumpMessage, Step,
-    ValidateProtocolError,
+    Action, Config, Motor, MotorId, MotorMessage, PinError, Program, Protocol, Pump, PumpMessage,
+    Step, ValidateProtocolError,
 };
 
 use lazy_static::lazy_static;
