@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 /// Encodes the system configuration.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub struct Config {
     /// The pump configuration.
     pub pump: PumpConfig,
@@ -10,12 +11,13 @@ pub struct Config {
 }
 
 /// Specifies a single motor.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub struct MotorConfig {
     /// The pin associated with this motor.
     pub pin: u16,
     /// An optional label for the motor (perhaps the buffer associated with it?).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "use_serde", serde(skip_serializing_if = "Option::is_none"))]
     pub label: Option<String>,
     /// The characteristic period of the motor.
     pub period: Duration,
@@ -24,7 +26,8 @@ pub struct MotorConfig {
 }
 
 /// Encodes the pump configuration.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 pub struct PumpConfig {
     /// The pins used for the pump, in order from 0–3.
     pub pins: [u16; 4],
