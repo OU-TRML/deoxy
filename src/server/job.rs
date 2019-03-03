@@ -151,7 +151,7 @@ impl Deref for UUID {
 
 impl From<Uuid> for UUID {
     fn from(uuid: Uuid) -> Self {
-        UUID(uuid)
+        Self(uuid)
     }
 }
 
@@ -161,7 +161,7 @@ impl<S> FromRequest<S> for UUID {
     fn from_request(req: &HttpRequest<S>, _: &Self::Config) -> Self::Result {
         let path = Path::<String>::extract(req).map_err(Error::from);
         path.and_then(|path| Uuid::parse_str(&path.into_inner()).map_err(|_| Error::InvalidUuid))
-            .map(UUID)
+            .map(Self)
     }
 }
 
