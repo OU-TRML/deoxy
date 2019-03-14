@@ -65,6 +65,7 @@ impl Pin {
             number,
         })
     }
+    /// Creates a stub Pin output struct on the given pin number.
     #[cfg(feature = "stub")]
     pub fn try_new(number: u16) -> std::result::Result<Self, Error> {
         Ok(Self {

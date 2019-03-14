@@ -44,6 +44,6 @@ pub use self::{
     comm::{Coordinator, Error as CoordError, Message as CoordMessage, State as ExecState},
     config::{Config, MotorConfig, PumpConfig},
     motor::{Message as MotorMessage, Motor},
-    pin::Error as PinError,
+    pin::{Error as PinError, Pin},
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
 };
