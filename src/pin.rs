@@ -68,6 +68,7 @@ impl Pin {
     /// Creates a stub Pin output struct on the given pin number.
     #[cfg(feature = "stub")]
     pub fn try_new(number: u16) -> std::result::Result<Self, Error> {
+        log::info!("Using a stub for GPIO; writes will be ignored");
         Ok(Self {
             output: self::stub::StubOutput {},
             number,
