@@ -1,0 +1,10 @@
+[package]
+name = "deoxy-web"
+version = "0.1.1"
+authors = ["Alex Hamilton <alex.hamilton@ou.edu>"]
+edition = "2018"
+
+[dependencies]
+yew = "0.6.0"
+uom = "0.21.1"
+deoxy-core = { version = "0.1.1", path = "../core" }

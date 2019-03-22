@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 actix-web = "0.7.18"
 deoxy-core = { version = "0.1.1", path = "core" }
+deoxy-web = { version = "0.1.1", path = "web", optional = true }
 gpio = "0.4.1"
 lazy_static = "1.2.0"
 log = "0.4.6"
@@ -23,6 +24,7 @@ default = ["server"]
 stub = []
 use_serde = ["deoxy-core/use_serde", "serde_derive", "serde"]
 server = ["use_serde", "futures"]
+web = ["deoxy-web"]
 
 [badges]
 travis-ci = { repository = "aehmlo/deoxy", branch = "master" }
