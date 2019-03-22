@@ -7,6 +7,7 @@ use uom::si::{f32::*, volume::liter};
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::Duration;
 
 mod messages;
 use self::messages::*;
@@ -30,19 +31,26 @@ pub struct ProtocolProps {
 }
 
 #[derive(Default, PartialEq)]
-pub struct Step(Option<CStep>, Vec<Buffer>);
+pub struct Step(usize, Option<CStep>, Vec<Buffer>);
 #[derive(Default)]
 struct Protocol {
     steps: Rc<RefCell<Vec<Step>>>,
+    onchange: Option<Callback<ProtocolMessage>>,
 }
 
 impl Component for Protocol {
-    type Message = ();
+    type Message = ProtocolMessage;
     type Properties = ProtocolProps;
     fn create(props: Self::Properties, _: ComponentLink<Self>) -> Self {
-        Self { steps: props.steps }
+        Self {
+            steps: props.steps,
+            onchange: props.onchange,
+        }
     }
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        if let Some(ref mut onchange) = self.onchange {
+            onchange.emit(msg);
+        }
         true
     }
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
@@ -87,45 +95,79 @@ impl Component for Step {
 
 impl Renderable<Protocol> for Step {
     fn view(&self) -> Html<Protocol> {
-        let (id, time) = if let Some(step) = self.0 {
-            panic!();
-            let CStep::Perfuse(id, time) = step;
-            (Some(id), time)
-        } else {
-            (None, None)
-        };
-        let id = id.unwrap_or_default();
-        let c = format!(
-            "color {}",
-            match (id + 1) {
-                1 => "one",
-                2 => "two",
-                3 => "three",
-                4 => "four",
-                5 => "five",
-                6 => "six",
-                7 => "seven",
-                8 => "eight",
-                9 => "nine",
-                10 => "ten",
-                _ => "",
+        let index = self.0;
+        let nonempty = self
+            .2
+            .iter()
+            .filter(|buf| !buf.label.is_empty())
+            .collect::<Vec<_>>();
+        if nonempty.len() == 0 {
+            html! {
+                <li>{"Add a buffer!"}</li>
             }
-        );
-        html! {
-            <li>
-                <span class=("verb", "perfuse"),>{"Perfuse"}</span>
-                {" with "}
-                <select class=c,>
-                { for self.1.iter().filter(|buf| !buf.label.is_empty()).map(|buf| html! {
-                    <option value=buf.index,>{&buf.label}</option>
-                })}
-                </select>
-                {" for "}
-                <input type={"number"}, class={"time"}, value=10, min=1, />
-                {" "}
-                <span class="time",>{"minutes"}</span>
-                {"."}
-            </li>
+        } else {
+            let (id, time) = if let Some(step) = self.1 {
+                let CStep::Perfuse(id, time) = step;
+                (Some(id), time)
+            } else {
+                (None, None)
+            };
+            let id = id.unwrap_or_default();
+            let time = if let Some(time) = time {
+                let secs = time.as_secs();
+                let mins = secs / 60;
+                format!("{}", mins)
+            } else {
+                "".to_string()
+            };
+            let c = format!(
+                "color {}",
+                match (id + 1) {
+                    1 => "one",
+                    2 => "two",
+                    3 => "three",
+                    4 => "four",
+                    5 => "five",
+                    6 => "six",
+                    7 => "seven",
+                    8 => "eight",
+                    9 => "nine",
+                    10 => "ten",
+                    _ => "",
+                }
+            );
+            let selected = move |pos: usize| {
+                move |event: yew::html::ChangeData| match event {
+                    yew::html::ChangeData::Select(sel) => {
+                        if let Some(val) = sel.value() {
+                            ProtocolMessage::Selected(index, pos, val)
+                        } else {
+                            ProtocolMessage::Ignore
+                        }
+                    }
+                    _ => ProtocolMessage::Ignore,
+                }
+            };
+            let input = move |event: yew::html::ChangeData| match event {
+                yew::html::ChangeData::Value(val) => ProtocolMessage::Input(index, 0, val),
+                _ => ProtocolMessage::Ignore,
+            };
+            html! {
+                <li>
+                    <span class=("verb", "perfuse"),>{"Perfuse"}</span>
+                    {" with "}
+                    <select class=c, onchange=|e| (selected(0))(e), >
+                    { for self.2.iter().filter(|buf| !buf.label.is_empty()).map(|buf| html! {
+                        <option value=buf.index,>{&buf.label}</option>
+                    })}
+                    </select>
+                    {" for "}
+                    <input type="number", class="time", min=1, value=time, onchange=|e| input(e), />
+                    {" "}
+                    <span class="time",>{"minutes"}</span>
+                    {"."}
+                </li>
+            }
         }
     }
 }
@@ -142,7 +184,7 @@ impl Default for Root {
             buf.index = i;
         }
         let buffers = Rc::new(RefCell::new(buffers));
-        let steps = vec![Step(None, vec![])];
+        let steps = vec![Step(0, None, vec![])];
         let steps = Rc::new(RefCell::new(steps));
         Self { buffers, steps }
     }
@@ -165,7 +207,7 @@ impl Component for Root {
                         }
                     };
                     buffers[index].label = label;
-                    let buffers = buffers.clone();
+                    let buffers = buffers.clone().to_vec();
                     let mut steps = loop {
                         let steps = self.steps.try_borrow_mut();
                         if let Ok(steps) = steps {
@@ -173,13 +215,47 @@ impl Component for Root {
                         }
                     };
                     for step in steps.iter_mut() {
-                        step.1 = buffers.clone().to_vec();
+                        step.2 = buffers.clone();
                     }
                     true
                 }
                 BufferMessage::Ignore => false,
             },
-            Message::Protocol(_msg) => false,
+            Message::Protocol(msg) => match msg {
+                ProtocolMessage::Selected(row, pos, val) => {
+                    let id = val.parse::<usize>().unwrap();
+                    let mut steps = loop {
+                        let steps = self.steps.try_borrow_mut();
+                        if let Ok(steps) = steps {
+                            break steps;
+                        }
+                    };
+                    let CStep::Perfuse(_, time) =
+                        steps[row].1.unwrap_or_else(|| CStep::Perfuse(0, None));
+                    steps[row].1 = Some(CStep::Perfuse(id, time));
+                    true
+                }
+                ProtocolMessage::Input(row, _pos, val) => {
+                    let mut steps = loop {
+                        let steps = self.steps.try_borrow_mut();
+                        if let Ok(steps) = steps {
+                            break steps;
+                        }
+                    };
+                    let CStep::Perfuse(id, _) =
+                        steps[row].1.unwrap_or_else(|| CStep::Perfuse(0, None));
+                    steps[row].1 = Some(CStep::Perfuse(
+                        id,
+                        Some(Duration::from_secs(60 * val.parse::<u64>().unwrap())),
+                    ));
+                    steps.push(Step::default());
+                    for (i, s) in steps.iter_mut().enumerate() {
+                        s.0 = i;
+                    }
+                    true
+                }
+                ProtocolMessage::Ignore => false,
+            },
         }
     }
     fn change(&mut self, _: Self::Properties) -> ShouldRender {

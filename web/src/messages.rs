@@ -14,7 +14,11 @@ impl From<BufferMessage> for Message {
     }
 }
 
-pub enum ProtocolMessage {}
+pub enum ProtocolMessage {
+    Selected(usize, usize, String),
+    Input(usize, usize, String),
+    Ignore,
+}
 
 impl From<ProtocolMessage> for Message {
     fn from(msg: ProtocolMessage) -> Self {
