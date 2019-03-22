@@ -71,7 +71,7 @@ impl Renderable<Self> for Protocol {
             <div id={"protocol"},>
             <h1>{"Protocol"}</h1>
             <ol>
-            { for steps.iter().map(|s| s.view()) }
+            { for steps.iter().map(Renderable::view) }
             </ol>
             <input type={"button"}, id={"start"}, value={"Start"}, />
             </div>
@@ -96,12 +96,12 @@ impl Component for Step {
 impl Renderable<Protocol> for Step {
     fn view(&self) -> Html<Protocol> {
         let index = self.0;
-        let nonempty = self
+        let real = self
             .2
             .iter()
             .filter(|buf| !buf.label.is_empty())
             .collect::<Vec<_>>();
-        if nonempty.len() == 0 {
+        if real.is_empty() {
             html! {
                 <li>{"Add a buffer!"}</li>
             }
@@ -122,7 +122,7 @@ impl Renderable<Protocol> for Step {
             };
             let c = format!(
                 "color {}",
-                match (id + 1) {
+                match id + 1 {
                     1 => "one",
                     2 => "two",
                     3 => "three",
@@ -222,7 +222,7 @@ impl Component for Root {
                 BufferMessage::Ignore => false,
             },
             Message::Protocol(msg) => match msg {
-                ProtocolMessage::Selected(row, pos, val) => {
+                ProtocolMessage::Selected(row, _pos, val) => {
                     let id = val.parse::<usize>().unwrap();
                     let mut steps = loop {
                         let steps = self.steps.try_borrow_mut();

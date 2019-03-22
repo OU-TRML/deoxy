@@ -67,7 +67,7 @@ impl Renderable<Self> for Buffers {
             <h1>{"Buffers"}</h1>
             <table>
                 <tr><th>{"Index"}</th><th>{"Label"}</th><th>{"Volume"}</th></tr>
-                { for buffers.iter().map(|b| b.view()) }
+                { for buffers.iter().map(Renderable::view) }
             </table>
             </div>
         }
