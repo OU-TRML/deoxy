@@ -31,7 +31,7 @@ mod gpio {
         pub static ref GPIO: Gpio = Gpio::new().unwrap();
     }
     pub(crate) fn pin(number: u8) -> Result<OutputPin, Error> {
-        GPIO.get(number).map(|pin| pin.into_output())
+        Ok(GPIO.get(number).map(|pin| pin.into_output())?)
     }
     impl Pwm for OutputPin {
         fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<(), Error> {
@@ -92,8 +92,13 @@ use rppal::gpio::Error as RppalError;
 #[cfg(feature = "use_rppal")]
 impl From<RppalError> for Error {
     fn from(err: RppalError) -> Self {
-        let RppalError::Io(err) = err;
-        Error::Io(err)
+        match err {
+            RppalError::Io(err) => Error::Io(err),
+            RppalError::UnknownModel => Error::Model,
+            RppalError::PinNotAvailable(pin) => Error::Unavailable(pin),
+            RppalError::PermissionDenied(path) => Error::Permission(path),
+            RppalError::ThreadPanic => Error::Panic,
+        }
     }
 }
 
@@ -126,7 +131,7 @@ impl Pin {
     #[cfg(not(feature = "stub"))]
     pub fn try_new(number: u16) -> Result<Self, Error> {
         Ok(Self {
-            output: gpio::pin(number)?,
+            output: gpio::pin(number as u8)?,
             number,
         })
     }
