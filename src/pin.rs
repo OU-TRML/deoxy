@@ -23,18 +23,19 @@ pub(crate) trait Out {
 
 #[cfg(not(feature = "stub"))]
 mod gpio {
-    use super::{Error, Pwm};
+    use super::{Error, Out, Pwm};
+    use lazy_static::lazy_static;
     pub(crate) use rppal::gpio::{Gpio, OutputPin};
     use std::time::Duration;
     lazy_static! {
         pub static ref GPIO: Gpio = Gpio::new().unwrap();
     }
-    fn pin(number: u8) -> Result<OutputPin, Error> {
+    pub(crate) fn pin(number: u8) -> Result<OutputPin, Error> {
         GPIO.get(number).map(|pin| pin.into_output())?
     }
     impl Pwm for OutputPin {
         fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<(), Error> {
-            self.set_pwm(&mut self, period: Duration, pulse_width: Duration)
+            self.set_pwm(&mut self, period, pulse_width)
         }
     }
     impl Out for OutputPin {
@@ -89,8 +90,9 @@ impl From<IoError> for Error {
 use rppal::gpio::Error as RppalError;
 #[cfg(feature = "use_rppal")]
 impl From<RppalError> for Error {
-    fn from(err: Rppal) -> Self {
-        Rppal::Io(err)
+    fn from(err: RppalError) -> Self {
+        let RppalError::IoError(err) = err;
+        Error::Io(err)
     }
 }
 
@@ -123,7 +125,7 @@ impl Pin {
     #[cfg(not(feature = "stub"))]
     pub fn try_new(number: u16) -> Result<Self, Error> {
         Ok(Self {
-            output: gpio::pin(u16)?,
+            output: gpio::pin(number)?,
             number,
         })
     }
