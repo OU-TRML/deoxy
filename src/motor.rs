@@ -4,10 +4,8 @@ use std::{ops::RangeInclusive, time::Duration};
 
 use crate::{
     actix::*,
-    pin::{Error as PinError, Pin},
+    pin::{Error as PinError, Pin, Pwm},
 };
-
-static RETRIES: u8 = 20;
 
 /// A message that can be sent to a motor to change its position.
 #[derive(Clone, Copy, Debug)]
@@ -44,8 +42,6 @@ pub struct Motor {
     pulse_width: Duration,
     /// The handle to the main loop for this motor (for cancellation).
     main_handle: Option<SpawnHandle>,
-    /// The number of consecutive failures followed by retries.
-    retries: u8,
 }
 
 impl PartialEq for Motor {
@@ -57,11 +53,15 @@ impl PartialEq for Motor {
 impl Eq for Motor {}
 
 impl Motor {
+    fn set_pulse_width(&mut self, width: Duration) -> Result<(), PinError> {
+        self.pulse_width = width;
+        self.pin.set_pwm(self.period, width)
+    }
     /// Sets the motor's angle in degrees (relative to the closed position).
     ///
     /// ## Panics
     /// This method will panic if `angle` is greater than 180.
-    pub fn set_angle(&mut self, angle: u16) {
+    pub fn set_angle(&mut self, angle: u16) -> Result<(), PinError> {
         assert!(angle <= 180);
         let (start, end) = (self.signal_range.start(), self.signal_range.end());
         // Dereference, since auto-deref doesn't seem to work for std::ops::Sub?
@@ -78,15 +78,15 @@ impl Motor {
             angle,
             start + offset
         );
-        self.pulse_width = start + offset;
+        self.set_pulse_width(start + offset)
     }
     /// Sets the motor to the closed position.
-    pub fn close(&mut self) {
+    pub fn close(&mut self) -> Result<(), PinError> {
         log::trace!("Closing motor.");
         self.set_angle(0)
     }
     /// Sets the motor to the open position (angle of 90º).
-    pub fn open(&mut self) {
+    pub fn open(&mut self) -> Result<(), PinError> {
         log::trace!("Opening motor.");
         self.set_angle(90)
     }
@@ -107,7 +107,6 @@ impl Motor {
             pulse_width: *signal_range.start(),
             signal_range,
             main_handle: None,
-            retries: 0,
         })
     }
     /// Constructs a new motor with the given period and signal range on the given pin number.
@@ -125,49 +124,16 @@ impl Motor {
     }
 }
 
-/// Warns the user that pin output failed and aborts if appropriate.
-// TODO: If we abort, tell the user.
-fn retry_or_abort(motor: &mut Motor, context: &mut Context<Motor>) {
-    motor.retries += 1;
-    log::warn!("Pin {} output failed.", motor.pin.number);
-    // Use >= just in case somebody updates this elsewhere for whatever reason.
-    if motor.retries >= RETRIES {
-        log::error!("Maximum retries ({}) reached; aborting.", RETRIES);
-        if let Some(handle) = motor.main_handle.take() {
-            context.cancel_future(handle);
-        }
-    } else {
-        log::info!("Will retry next time ({}).", motor.retries);
-    }
-}
-
 impl Actor for Motor {
     type Context = Context<Self>;
-    fn started(&mut self, context: &mut Self::Context) {
-        log::trace!("Motor actor started.");
-        self.main_handle = context
-            .run_interval(self.period, |motor, context| {
-                let result = motor.pin.set_high();
-                if result.is_err() {
-                    retry_or_abort(motor, context);
-                }
-                context.run_later(motor.pulse_width, |motor, context| {
-                    let result = motor.pin.set_low();
-                    if result.is_err() {
-                        retry_or_abort(motor, context);
-                    }
-                });
-            })
-            .into();
-    }
 }
 
 impl Handle<Message> for Motor {
     type Result = ();
     fn handle(&mut self, message: Message, _context: &mut Self::Context) -> Self::Result {
         match message {
-            Message::Open => self.open(),
-            Message::Close => self.close(),
+            Message::Open => self.open().unwrap(),
+            Message::Close => self.close().unwrap(),
         }
     }
 }
@@ -194,6 +160,6 @@ mod tests {
             1,
         )
         .unwrap();
-        motor.set_angle(181);
+        let _ = motor.set_angle(181);
     }
 }

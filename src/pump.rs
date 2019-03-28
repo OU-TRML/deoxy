@@ -111,11 +111,11 @@ impl Pump {
                 Direction::Backward => (1, 2),
             };
             let (top, bottom) = (pins.0, pins.1);
-            self.pins[top].set_high()?;
-            self.pins[bottom].set_high()?;
+            self.pins[top].set_high();
+            self.pins[bottom].set_high();
         } else {
             for i in 0..4 {
-                self.pins[i].set_low()?;
+                self.pins[i].set_low();
             }
         }
         self.direction = direction;

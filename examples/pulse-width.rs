@@ -130,9 +130,9 @@ impl Actor for Motor {
     type Context = Context<Self>;
     fn started(&mut self, context: &mut Self::Context) {
         context.run_interval(self.period, |motor, context| {
-            motor.pin.set_high().unwrap();
+            motor.pin.set_high();
             context.run_later(motor.pulse_width, |motor, _context| {
-                motor.pin.set_low().unwrap();
+                motor.pin.set_low();
             });
         });
         self.prompt.do_send(PromptMessage::GetNext {
