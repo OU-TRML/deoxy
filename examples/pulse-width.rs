@@ -99,7 +99,7 @@ impl Handle<PromptMessage> for Prompt {
                         }
                     };
                     let pulse_width = pulse_width.wait().unwrap();
-                    log::info!("Current pulse width: {} µs\n", pulse_width);
+                    println!("Current pulse width: {} µs", pulse_width);
                     context.notify(PromptMessage::GetNext { motor });
                 }
             }
