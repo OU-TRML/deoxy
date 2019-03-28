@@ -31,11 +31,12 @@ mod gpio {
         pub static ref GPIO: Gpio = Gpio::new().unwrap();
     }
     pub(crate) fn pin(number: u8) -> Result<OutputPin, Error> {
-        GPIO.get(number).map(|pin| pin.into_output())?
+        GPIO.get(number).map(|pin| pin.into_output())
     }
     impl Pwm for OutputPin {
         fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<(), Error> {
-            self.set_pwm(&mut self, period, pulse_width)
+            self.set_pwm(period, pulse_width)?;
+            Ok(())
         }
     }
     impl Out for OutputPin {
@@ -91,7 +92,7 @@ use rppal::gpio::Error as RppalError;
 #[cfg(feature = "use_rppal")]
 impl From<RppalError> for Error {
     fn from(err: RppalError) -> Self {
-        let RppalError::IoError(err) = err;
+        let RppalError::Io(err) = err;
         Error::Io(err)
     }
 }
@@ -163,6 +164,7 @@ impl Out for Pin {
 
 impl Pwm for Pin {
     fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<(), Error> {
-        self.output.set_pwm(period, pulse_width)
+        self.output.set_pwm(period, pulse_width)?;
+        Ok(())
     }
 }
