@@ -27,7 +27,7 @@ pub use deoxy_core::*;
 /// Re-export of crucial `actix` elements.
 pub mod actix {
     pub use actix_web::actix::{
-        Actor, Addr, AsyncContext, Context, Handler as Handle, Message as ActixMessage,
+        Actor, Addr, Arbiter, AsyncContext, Context, Handler as Handle, Message as ActixMessage,
         SpawnHandle, System,
     };
 }
