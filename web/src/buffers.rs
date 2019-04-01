@@ -3,7 +3,7 @@ use yew::prelude::*;
 
 use uom::{
     fmt::DisplayStyle,
-    si::{f32::*, volume::liter},
+    si::{f32::*, volume::milliliter},
 };
 
 use std::{cell::RefCell, rc::Rc};
@@ -129,7 +129,7 @@ impl Renderable<Buffers> for Buffer {
             }
         };
         let volume = if let Some(volume) = self.volume {
-            let fmt = Volume::format_args(liter, DisplayStyle::Abbreviation);
+            let fmt = Volume::format_args(milliliter, DisplayStyle::Abbreviation);
             format!("{}", fmt.with(volume))
         } else {
             "".to_string()

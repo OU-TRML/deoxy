@@ -8,8 +8,8 @@ use crate::{
 use lazy_static::lazy_static;
 use uom::si::f64::*;
 use uom::si::time::second;
-use uom::si::volume::cubic_centimeter as milliliter;
-use uom::si::volume_rate::cubic_centimeter_per_second as milliliter_per_second;
+use uom::si::volume::milliliter;
+use uom::si::volume_rate::milliliter_per_second;
 use uuid::Uuid;
 
 use std::{fmt, ops::Index, time::Duration};

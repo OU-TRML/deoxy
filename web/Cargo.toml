@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 yew = "0.6.0"
-uom = "0.21.1"
+uom = "0.22.1"
 deoxy-core = { version = "0.1.1", path = "../core" }

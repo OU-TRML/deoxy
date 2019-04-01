@@ -13,7 +13,7 @@ deoxy-web = { version = "0.1.1", path = "web", optional = true }
 lazy_static = "1.2.0"
 log = "0.4.6"
 rppal = { version = "0.11.1", optional = true }
-uom = "0.21.0"
+uom = "0.22.1"
 uuid = { version = "0.7", features = ["serde", "v4"] }
 serde_derive = { version = "1.0.84", optional = true }
 serde = { version = "1.0.84", optional = true }
