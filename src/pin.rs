@@ -41,10 +41,10 @@ mod gpio {
     }
     impl Out for OutputPin {
         fn set_high(&mut self) {
-            OutputPin::set_high(self);
+            Self::set_high(self);
         }
         fn set_low(&mut self) {
-            OutputPin::set_low(self);
+            Self::set_low(self);
         }
     }
 }
