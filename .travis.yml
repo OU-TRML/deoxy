@@ -13,7 +13,6 @@ install:
   - rustup component add clippy
 script:
   - cargo fmt --all -- --check
-  - cargo clippy
-  - cargo check --no-default-features --features stub
+  - cargo clippy --no-default-features --features stub
   - cargo build --no-default-features --features server,stub,use_serde --verbose
   - cargo test --no-default-features --features server,stub,use_serde --verbose --all
