@@ -112,7 +112,8 @@ impl Renderable<Protocol> for Step {
             } else {
                 (None, None)
             };
-            let id = id.unwrap_or_default();
+            let chosen = id.is_some();
+            let id = id.unwrap_or(3);
             let time = if let Some(time) = time {
                 let secs = time.as_secs();
                 let mins = secs / 60;
@@ -152,15 +153,29 @@ impl Renderable<Protocol> for Step {
                 yew::html::ChangeData::Value(val) => ProtocolMessage::Input(index, 0, val),
                 _ => ProtocolMessage::Ignore,
             };
-            html! {
-                <li>
-                    <span class=("verb", "perfuse"),>{"Perfuse"}</span>
-                    {" with "}
+            let sel = if chosen {
+                html! {
                     <select class=c, onchange=|e| (selected(0))(e), >
                     { for self.2.iter().filter(|buf| !buf.label.is_empty()).map(|buf| html! {
                         <option value=buf.index,>{&buf.label}</option>
                     })}
                     </select>
+                }
+            } else {
+                html! {
+                    <select class=c, onchange=|e| (selected(0))(e), >
+                    <option disabled=true,></option>
+                    { for self.2.iter().filter(|buf| !buf.label.is_empty()).map(|buf| html! {
+                        <option value=buf.index,>{&buf.label}</option>
+                    })}
+                    </select>
+                }
+            };
+            html! {
+                <li>
+                    <span class=("verb", "perfuse"),>{"Perfuse"}</span>
+                    {" with "}
+                    { sel }
                     {" for "}
                     <input type="number", class="time", min=1, value=time, onchange=|e| input(e), />
                     {" "}
@@ -248,7 +263,9 @@ impl Component for Root {
                         id,
                         Some(Duration::from_secs(60 * val.parse::<u64>().unwrap())),
                     ));
-                    steps.push(Step::default());
+                    let mut next = Step::default();
+                    next.2 = steps.last().map(|s| s.2.clone()).unwrap_or_default();
+                    steps.push(next);
                     for (i, s) in steps.iter_mut().enumerate() {
                         s.0 = i;
                     }
