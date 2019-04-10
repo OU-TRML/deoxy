@@ -542,6 +542,41 @@ pub enum StatusMessage {
 impl ActixMessage for Status {
     type Result = ();
 }
+
+#[allow(clippy::print_stdout)]
+pub mod tui {
+    use super::{Message, Respond, Status, StatusMessage, Subscribers, Update};
+    /// A helper which allows the user to continue the coordinator by sending a newline.
+    // Don't impl Clone or Copy; we don't want multiple responders of this type.
+    #[allow(missing_copy_implementations)]
+    #[derive(Debug, Default)]
+    pub struct Tui {}
+    impl Update for Tui {
+        fn handle(&self, status: &Status, coord: &Subscribers) {
+            match &status.message {
+                StatusMessage::Paused => {
+                    log::trace!("Prompting user to unpause.");
+                    use std::io::{stdin, stdout, BufRead, Write};
+                    print!("Coordinator paused. Press enter to continue when desired.");
+                    let _ = stdout().lock().flush();
+                    let mut s = String::new();
+                    loop {
+                        if stdin().lock().read_line(&mut s).is_ok() {
+                            break;
+                        }
+                    }
+                    coord.respond(Message::Continue);
+                }
+                StatusMessage::Continued => log::debug!("Coordinator continuing."),
+                StatusMessage::Started(proto) => {
+                    log::debug!("Coordinator starting protocol: {:?}", proto)
+                }
+                StatusMessage::StopQueued { early } => {
+                    log::debug!("Coordinator stop queued (early: {})", early)
+                }
+                StatusMessage::Halted => log::warn!("Coordinator halted!"),
+            }
         }
     }
+
 }

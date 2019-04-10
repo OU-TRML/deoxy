@@ -50,3 +50,6 @@ pub use self::{
     pin::{Error as PinError, Pin},
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
 };
+
+#[cfg(not(feature = "server"))]
+pub use self::comm::tui::Tui;
