@@ -75,7 +75,7 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 
 /// A message sent to control the coordinator.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Message {
     /// The user has instructed us to move on to the next step.
     Continue,
@@ -93,6 +93,8 @@ pub enum Message {
     /// If the second parameter is specified, it is used as the label for the job; otherwise, one
     /// is generated.
     Start(Protocol, Option<Uuid>),
+    /// Used to subscribe to coordinator updates.
+    Subscribe(Box<dyn Update>),
 }
 
 impl ActixMessage for Message {
@@ -130,6 +132,8 @@ struct Addresses {
     motors: Vec<Addr<Motor>>,
     /// The address of the pump.
     pump: Addr<Pump>,
+    /// The address of the subscriber entry point.
+    subscribers: Addr<Subscribers>,
 }
 
 impl Index<MotorId> for Addresses {
@@ -259,7 +263,11 @@ impl Coordinator {
                     Action::Sleep(duration) => {
                         context.run_later(duration, Self::try_advance);
                     }
-                    Action::Hail => self.state.status = State::Waiting,
+                    Action::Hail => {
+                        self.state.status = State::Waiting;
+                        // TODO: Publish for other actions as well
+                        self.publish(StatusMessage::Paused, context);
+                    }
                     Action::Drain => {
                         if let Some(ref addresses) = self.addresses {
                             addresses.pump.do_send(PumpMessage::Drain);
@@ -371,11 +379,33 @@ impl Coordinator {
         }
         Ok(())
     }
+    /// Subscribes the given object to updates from the coordinator.
+    pub fn subscribe(&self, sub: Box<dyn Update>) {
+        if let Some(addr) = &self.addresses {
+            addr.subscribers.do_send(SubscribersMessage::Add(sub));
+        }
+    }
+    /// Publishes a status change to all subscribers.
+    fn publish(&self, message: StatusMessage, context: &mut <Self as Actor>::Context) {
+        if let Some(addr) = &self.addresses {
+            let message = Status {
+                address: context.address(),
+                message,
+            };
+            addr.subscribers
+                .do_send(SubscribersMessage::Forward(message));
+        }
+    }
 }
 
 impl Actor for Coordinator {
     type Context = CoordContext;
-    fn started(&mut self, _ctx: &mut Self::Context) {
+    fn started(&mut self, ctx: &mut Self::Context) {
+        let subscribers = Subscribers {
+            subs: vec![],
+            coord: ctx.address(),
+        }
+        .start();
         if let Some(devices) = self.devices.take() {
             let motors = devices
                 .motors
@@ -383,7 +413,11 @@ impl Actor for Coordinator {
                 .map(Actor::start)
                 .collect::<Vec<_>>();
             let pump = devices.pump.start();
-            let addresses = Addresses { pump, motors };
+            let addresses = Addresses {
+                pump,
+                motors,
+                subscribers,
+            };
             self.addresses = Some(addresses);
         }
     }
@@ -397,11 +431,117 @@ impl Handle<Message> for Coordinator {
     type Result = Result<()>;
     fn handle(&mut self, message: Message, context: &mut Self::Context) -> Self::Result {
         match message {
-            Message::Continue => self.resume(context),
-            Message::Stop => self.stop(None),
-            Message::Halt => self.hcf(),
-            Message::ExchangeStop(id) => self.stop(id),
-            Message::Start(proto, label) => self.start(&proto, label, context),
+            Message::Continue => {
+                self.resume(context)?;
+                self.publish(StatusMessage::Continued, context);
+            }
+            Message::Stop => {
+                self.stop(None)?;
+                self.publish(StatusMessage::StopQueued { early: false }, context);
+            }
+            Message::Halt => {
+                self.hcf()?;
+                self.publish(StatusMessage::Halted, context);
+            }
+            Message::ExchangeStop(id) => {
+                self.stop(id)?;
+                self.publish(StatusMessage::StopQueued { early: false }, context);
+            }
+            Message::Start(proto, label) => {
+                self.start(&proto, label, context)?;
+                self.publish(StatusMessage::Started(proto), context);
+            }
+            Message::Subscribe(sub) => self.subscribe(sub),
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+enum SubscribersMessage {
+    /// Register a new listener.
+    Add(Box<dyn Update>),
+    /// Forward this message to listeners.
+    Forward(Status),
+}
+
+impl ActixMessage for SubscribersMessage {
+    type Result = ();
+}
+
+/// Handles all subscription and responding to events.
+#[derive(Debug)]
+pub struct Subscribers {
+    coord: Addr<Coordinator>,
+    subs: Vec<Box<dyn Update>>,
+}
+
+impl Actor for Subscribers {
+    type Context = Context<Self>;
+}
+
+impl Handle<SubscribersMessage> for Subscribers {
+    type Result = ();
+    fn handle(&mut self, message: SubscribersMessage, _context: &mut Self::Context) {
+        match message {
+            SubscribersMessage::Forward(message) => {
+                for sub in self.subs.iter() {
+                    sub.handle(&message, &self);
+                }
+            }
+            SubscribersMessage::Add(listener) => {
+                self.subs.push(listener);
+            }
+        }
+    }
+}
+
+pub trait Respond {
+    fn respond(&self, msg: Message);
+}
+
+impl Respond for Subscribers {
+    fn respond(&self, msg: Message) {
+        self.coord.do_send(msg);
+    }
+}
+
+/// Trait for receiving updates on coordinator status.
+pub trait Update: std::fmt::Debug + Send {
+    /// Handles the change in coordinator status.
+    fn handle(&self, msg: &Status, coord: &Subscribers);
+}
+
+#[derive(Debug)]
+/// Message notifying subscribers of changes in the coordinator's status.
+pub struct Status {
+    /// The address of the coordinator in question.
+    pub address: Addr<Coordinator>,
+    /// The information the coordinator wishes to convey.
+    pub message: StatusMessage,
+}
+
+#[derive(Debug)]
+/// Encodes a coordinator's status update.
+pub enum StatusMessage {
+    /// The coordinator has been told to continue.
+    Continued,
+    /// The coordinator has started the given protocol.
+    Started(Protocol),
+    /// The coordinator has paused and will await user confirmation to continue.
+    Paused,
+    /// The coordinator has been told to stop, either early (aborted) or not (completed).
+    StopQueued {
+        /// Whether the stop was premature.
+        early: bool,
+    },
+    /// The coordinator has been halted.
+    Halted,
+}
+
+impl ActixMessage for Status {
+    type Result = ();
+}
         }
     }
 }

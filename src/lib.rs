@@ -41,7 +41,10 @@ mod pump;
 pub mod server;
 
 pub use self::{
-    comm::{Coordinator, Error as CoordError, Message as CoordMessage, State as ExecState},
+    comm::{
+        Coordinator, Error as CoordError, Message as CoordMessage, State as ExecState, Status,
+        StatusMessage, Update,
+    },
     config::{Config, MotorConfig, PumpConfig},
     motor::{Message as MotorMessage, Motor},
     pin::{Error as PinError, Pin},
