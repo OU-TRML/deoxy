@@ -15,5 +15,5 @@ script:
   - cargo fmt --all -- --check
   - cargo clippy
   - cargo check --no-default-features --features stub
-  - cargo build --features stub --verbose
-  - cargo test --features stub --verbose --all
+  - cargo build --no-default-features --features server,stub,use_serde --verbose
+  - cargo test --no-default-features --features server,stub,use_serde --verbose --all
