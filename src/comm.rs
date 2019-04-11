@@ -253,6 +253,12 @@ impl Coordinator {
                     Action::Perfuse(buffer) => {
                         addresses[buffer].do_send(MotorMessage::Open);
                         addresses.pump.do_send(PumpMessage::Perfuse);
+                        // Stop signaling the motor after five seconds
+                        context.run_later(Duration::new(5, 0), move |coord, _| {
+                            if let Some(ref addresses) = coord.addresses {
+                                addresses[buffer].do_send(MotorMessage::Stop);
+                            }
+                        });
                         context.run_later(*DURATION, move |coord, context| {
                             if let Some(ref addresses) = coord.addresses {
                                 addresses.pump.do_send(PumpMessage::Stop);

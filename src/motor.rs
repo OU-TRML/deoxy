@@ -14,6 +14,8 @@ pub enum Message {
     Close,
     /// Requests that the motor be set to the open position.
     Open,
+    /// Turns off the motor's output signal.
+    Stop,
 }
 
 impl ActixMessage for Message {
@@ -134,6 +136,7 @@ impl Handle<Message> for Motor {
         match message {
             Message::Open => self.open().unwrap(),
             Message::Close => self.close().unwrap(),
+            Message::Stop => self.set_pulse_width(Duration::new(0, 0)).unwrap(),
         }
     }
 }
