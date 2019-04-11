@@ -47,7 +47,7 @@ pub use self::{
     },
     config::{Config, MotorConfig, PumpConfig},
     motor::{Message as MotorMessage, Motor},
-    pin::{Error as PinError, Pin},
+    pin::{Error as PinError, Out, Pin, Pwm},
     pump::{Direction as PumpDirection, Message as PumpMessage, Pump},
 };
 

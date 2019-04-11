@@ -5,13 +5,19 @@ use std::{fmt, io::Error as IoError};
 #[cfg(all(feature = "stub", feature = "use_rppal"))]
 compile_error!("Cannot stub and use rppal simultaneously");
 
-pub(crate) trait Pwm {
+/// Trait representing an output device capable of (software) PWM.
+pub trait Pwm {
+    /// Sets the pulse width and period for the device.
     fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<(), Error>;
 }
 
-pub(crate) trait Out {
+/// Trait representing a general output device.
+pub trait Out {
+    /// Sets the output device high.
     fn set_high(&mut self);
+    /// Sets the output device low.
     fn set_low(&mut self);
+    /// Sets the output device high/low.
     fn set(&mut self, value: bool) {
         if value {
             self.set_high()
