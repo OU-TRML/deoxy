@@ -1,4 +1,4 @@
-use deoxy::{actix::*, Pin};
+use deoxy::{actix::*, Pin, Pwm};
 use futures::future::Future;
 use std::str::FromStr;
 use std::{
@@ -129,12 +129,6 @@ impl Motor {
 impl Actor for Motor {
     type Context = Context<Self>;
     fn started(&mut self, context: &mut Self::Context) {
-        context.run_interval(self.period, |motor, context| {
-            motor.pin.set_high();
-            context.run_later(motor.pulse_width, |motor, _context| {
-                motor.pin.set_low();
-            });
-        });
         self.prompt.do_send(PromptMessage::GetNext {
             motor: context.address(),
         });
@@ -154,7 +148,7 @@ enum MotorMessage {
 
 impl Handle<MotorMessage> for Motor {
     type Result = u64;
-    fn handle(&mut self, message: MotorMessage, _context: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, message: MotorMessage, context: &mut Self::Context) -> Self::Result {
         match message {
             MotorMessage::Increase => {
                 self.pulse_width += Duration::from_micros(1);
@@ -167,6 +161,14 @@ impl Handle<MotorMessage> for Motor {
             }
             MotorMessage::Get => {}
         };
+        self.pin.set_pwm(self.period, self.pulse_width).unwrap();
+        // Stop signaling the motor after five seconds
+        context.run_later(Duration::new(5, 0), move |motor, _| {
+            motor
+                .pin
+                .set_pwm(motor.period, Duration::new(0, 0))
+                .unwrap();
+        });
         self.pulse_width.as_micros() as u64
     }
 }
