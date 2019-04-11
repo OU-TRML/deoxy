@@ -1,51 +1,51 @@
 [[motors]]
 pin = 4
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 27
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 21
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 13
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 26
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 23
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 22
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 12
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 20
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [[motors]]
 pin = 19
-range = [553, 2520] # µs
+range = [600, 2400] # µs
 period = 20 # ms
 
 [pump]
