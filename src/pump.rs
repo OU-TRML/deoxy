@@ -1,4 +1,5 @@
 //! Pump management.
+use std::ops::Not;
 use std::thread;
 
 use crate::actix::*;
@@ -26,6 +27,16 @@ pub enum Direction {
     Forward,
     /// The pump should run in the backward direction (toward waste), draining any sample.
     Backward,
+}
+
+impl Not for Direction {
+    type Output = Self;
+    fn not(self) -> Self {
+        match self {
+            Direction::Forward => Direction::Backward,
+            Direction::Backward => Direction::Forward,
+        }
+    }
 }
 
 /// Pump movement result type.
@@ -56,6 +67,8 @@ pub struct Pump {
     pins: [Pin; 4],
     /// The direction the pump should run in (if running).
     direction: Option<Direction>,
+    /// Whether directions should be reversed.
+    pub invert: bool,
 }
 
 impl PartialEq for Pump {
@@ -81,6 +94,7 @@ impl Pump {
         Ok(Self {
             direction: None,
             pins,
+            invert: false,
         })
     }
     /// Creates a new pump using the given GPIO pin numbers.
@@ -95,6 +109,9 @@ impl Pump {
     ///
     /// If the pump is not already stopped, it will be stopped and a wait of 20 ms will be added to
     /// prevent sparks, short-circuits, etc.
+    ///
+    /// ## Notes
+    /// If [`invert`](#structfield.invert) is `true`, `direction` will be inverted.
     pub fn set_direction<D>(&mut self, direction: D) -> Result<Option<Direction>>
     where
         D: Into<Option<Direction>>,
@@ -106,6 +123,7 @@ impl Pump {
                 // Sleep to make sure we avoid Bad Things™️
                 thread::sleep(std::time::Duration::from_millis(20));
             }
+            let direction = if self.invert { !direction } else { direction };
             let pins = match direction {
                 Direction::Forward => (0, 3),
                 Direction::Backward => (1, 2),

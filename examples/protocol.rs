@@ -25,6 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = Config {
         pump: PumpConfig {
             pins: [24, 25, 5, 6],
+            invert: false,
         },
         motors: vec![motor!(4), motor!(27), motor!(21), motor!(13)],
     };

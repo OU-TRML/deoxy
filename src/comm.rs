@@ -189,7 +189,8 @@ pub struct Coordinator {
 impl Coordinator {
     /// Initializes a coordinator and prepares it for running.
     pub fn try_new(config: Config) -> Result<Self> {
-        let pump = Pump::try_new(config.pump.pins)?;
+        let mut pump = Pump::try_new(config.pump.pins)?;
+        pump.invert = config.pump.invert;
         let motors = config
             .motors
             .into_iter()

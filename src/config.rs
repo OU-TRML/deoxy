@@ -31,4 +31,7 @@ pub struct MotorConfig {
 pub struct PumpConfig {
     /// The pins used for the pump, in order from 0–3.
     pub pins: [u16; 4],
+    /// If true, the pump's "forward" direction will be the reverse direction
+    #[cfg_attr(feature = "use_serde", serde(default, alias = "reverse"))]
+    pub invert: bool,
 }

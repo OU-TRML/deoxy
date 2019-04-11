@@ -9,7 +9,10 @@ use deoxy::{actix::*, Config, CoordMessage, Coordinator, MotorConfig, Protocol, 
 fn main() {
     pretty_env_logger::init();
 
-    let pump = PumpConfig { pins: [1, 2, 3, 4] };
+    let pump = PumpConfig {
+        pins: [1, 2, 3, 4],
+        invert: false,
+    };
     let motor1 = MotorConfig {
         pin: 5,
         period: Duration::new(1, 0),
