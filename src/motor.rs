@@ -14,6 +14,8 @@ pub enum Message {
     Close,
     /// Requests that the motor be set to the open position.
     Open,
+    /// Requests that the motor be set to the shut (not closed) position.
+    Shut,
     /// Turns off the motor's output signal.
     Stop,
 }
@@ -82,15 +84,24 @@ impl Motor {
         );
         self.set_pulse_width(start + offset)
     }
-    /// Sets the motor to the closed position.
+    /// Sets the motor to the closed position (angle of 90º).
+    ///
+    /// Fluid will flow through the valve, but not from the associated buffer.
     pub fn close(&mut self) -> Result<(), PinError> {
         log::trace!("Closing motor.");
-        self.set_angle(0)
+        self.set_angle(90)
     }
-    /// Sets the motor to the open position (angle of 90º).
+    /// Sets the motor to the shut position, where no fluid will flow through it.
+    pub fn shut(&mut self) -> Result<(), PinError> {
+        log::trace!("Shutting motor.");
+        self.set_angle(180)
+    }
+    /// Sets the motor to the open position (angle of 0º).
+    ///
+    /// Fluid from the associated buffer will flow through the valve.
     pub fn open(&mut self) -> Result<(), PinError> {
         log::trace!("Opening motor.");
-        self.set_angle(90)
+        self.set_angle(0)
     }
     ///
     /// Constructs a new motor with the given period and signal range on the given pin number, if
@@ -136,6 +147,7 @@ impl Handle<Message> for Motor {
         match message {
             Message::Open => self.open().unwrap(),
             Message::Close => self.close().unwrap(),
+            Message::Shut => self.shut().unwrap(),
             Message::Stop => self.set_pulse_width(Duration::new(0, 0)).unwrap(),
         }
     }

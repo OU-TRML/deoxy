@@ -251,6 +251,8 @@ impl Coordinator {
                 // Usually this will be try_advance.
                 match action {
                     Action::Perfuse(buffer) => {
+                        let buffer = buffer + 1; // Motor 0 is waste
+                        addresses[0].do_send(MotorMessage::Shut);
                         addresses[buffer].do_send(MotorMessage::Open);
                         addresses.pump.do_send(PumpMessage::Perfuse);
                         // Stop signaling the motor after five seconds
@@ -277,6 +279,7 @@ impl Coordinator {
                     }
                     Action::Drain => {
                         if let Some(ref addresses) = self.addresses {
+                            addresses[0].do_send(MotorMessage::Close);
                             addresses.pump.do_send(PumpMessage::Drain);
                         }
                         context.run_later(
@@ -284,6 +287,7 @@ impl Coordinator {
                             |coord, context| {
                                 if let Some(ref addresses) = coord.addresses {
                                     addresses.pump.do_send(PumpMessage::Stop);
+                                    addresses[0].do_send(MotorMessage::Shut);
                                     coord.try_advance(context);
                                 }
                             },
