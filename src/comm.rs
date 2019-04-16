@@ -303,7 +303,25 @@ impl Coordinator {
                             },
                         );
                     }
-                    Action::Finish => unimplemented!(),
+                    Action::Finish => {
+                        if let Some(addresses) = &self.addresses {
+                            addresses.pump.do_send(PumpMessage::Stop);
+                            addresses[0].do_send(MotorMessage::Shut);
+                            for motor in addresses.motors.iter().skip(1) {
+                                motor.do_send(MotorMessage::Close);
+                            }
+                            // Stop signaling the motors after five seconds
+                            context.run_later(Duration::new(5, 0), move |coord, _| {
+                                if let Some(ref addresses) = coord.addresses {
+                                    for motor in addresses.motors.iter() {
+                                        motor.do_send(MotorMessage::Stop);
+                                    }
+                                }
+                            });
+                        }
+                        // TODO: Handle error
+                        let _ = mail::notify(&self.admins, mail::Status::Finished);
+                    }
                 }
                 self.state.completed.push(action);
                 self.state.current = Some(action);
