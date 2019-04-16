@@ -106,9 +106,12 @@ impl Renderable<Protocol> for Step {
                 <li>{"Add a buffer!"}</li>
             }
         } else {
-            let (id, time) = if let Some(step) = self.1 {
-                let CStep::Perfuse(id, time) = step;
-                (Some(id), time)
+            let (id, time) = if let Some(step) = &self.1 {
+                if let CStep::Perfuse(id, time) = step {
+                    (Some(*id), *time)
+                } else {
+                    unimplemented!()
+                }
             } else {
                 (None, None)
             };
@@ -245,10 +248,16 @@ impl Component for Root {
                             break steps;
                         }
                     };
-                    let CStep::Perfuse(_, time) =
-                        steps[row].1.unwrap_or_else(|| CStep::Perfuse(0, None));
-                    steps[row].1 = Some(CStep::Perfuse(id, time));
-                    true
+                    if let CStep::Perfuse(_, time) = steps[row]
+                        .1
+                        .clone()
+                        .unwrap_or_else(|| CStep::Perfuse(0, None))
+                    {
+                        steps[row].1 = Some(CStep::Perfuse(id, time));
+                        true
+                    } else {
+                        unimplemented!()
+                    }
                 }
                 ProtocolMessage::Input(row, _pos, val) => {
                     let mut steps = loop {
@@ -257,12 +266,18 @@ impl Component for Root {
                             break steps;
                         }
                     };
-                    let CStep::Perfuse(id, _) =
-                        steps[row].1.unwrap_or_else(|| CStep::Perfuse(0, None));
-                    steps[row].1 = Some(CStep::Perfuse(
-                        id,
-                        Some(Duration::from_secs(60 * val.parse::<u64>().unwrap())),
-                    ));
+                    if let CStep::Perfuse(id, _) = steps[row]
+                        .1
+                        .clone()
+                        .unwrap_or_else(|| CStep::Perfuse(0, None))
+                    {
+                        steps[row].1 = Some(CStep::Perfuse(
+                            id,
+                            Some(Duration::from_secs(60 * val.parse::<u64>().unwrap())),
+                        ));
+                    } else {
+                        unimplemented!()
+                    }
                     let mut next = Step::default();
                     next.2 = steps.last().map(|s| s.2.clone()).unwrap_or_default();
                     steps.push(next);
