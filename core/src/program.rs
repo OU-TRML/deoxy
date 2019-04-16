@@ -112,11 +112,11 @@ impl Protocol {
                     }
                     Step::PerfusePrompt(motor, begin, duration, end) => {
                         actions.push(Action::Perfuse(*motor));
-                        actions.push(Action::Hail);
                         actions.push(Action::Notify(begin.clone()));
-                        actions.push(Action::Sleep(*duration));
                         actions.push(Action::Hail);
+                        actions.push(Action::Sleep(*duration));
                         actions.push(Action::Notify(end.clone()));
+                        actions.push(Action::Hail);
                         actions.push(Action::Drain);
                     }
                 }
