@@ -1,8 +1,8 @@
 //! Communication utilities.
 use crate::actix::*;
 use crate::{
-    Action, Config, Motor, MotorId, MotorMessage, PinError, Program, Protocol, Pump, PumpMessage,
-    Step, ValidateProtocolError,
+    mail, Action, Config, Motor, MotorId, MotorMessage, PinError, Program, Protocol, Pump,
+    PumpMessage, Step, ValidateProtocolError,
 };
 
 use lazy_static::lazy_static;
@@ -184,6 +184,8 @@ pub struct Coordinator {
     addresses: Option<Addresses>,
     /// Encodes the state of the coordinator.
     pub(crate) state: CoordState,
+    /// The contact emails of the administrators of this machine.
+    admins: Vec<String>,
 }
 
 impl Coordinator {
@@ -207,6 +209,7 @@ impl Coordinator {
             devices,
             addresses: None,
             state: CoordState::default(),
+            admins: config.admins,
         })
     }
     /// The in-progress program, if appropriate.
@@ -359,7 +362,8 @@ impl Coordinator {
         self.state.status = State::Stopped { early: true };
         // We didn't finish the last step, so remove it from the list
         self.state.completed.pop();
-        // TODO: Notify user
+        // TODO: Handle error
+        let _ = mail::notify(&self.admins, mail::Status::Aborted);
         Ok(())
     }
     /// Whether we're in the stopped state.
