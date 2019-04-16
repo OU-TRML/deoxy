@@ -5,6 +5,38 @@ use std::{
     process::{Command, Stdio},
 };
 
+/// Encodes the status of the decell machine.
+#[derive(Clone, Copy, Debug)]
+pub enum Status<'a> {
+    /// The run has finished.
+    Finished,
+    /// The run has been aborted.
+    Aborted,
+    /// A custom status message.
+    Custom {
+        /// The message's subject.
+        subject: &'a str,
+        /// The message's body.
+        message: &'a str,
+    },
+}
+
+/// Notify the specified recipients of a status change.
+pub fn notify(to: &[impl ToString], status: Status) -> std::io::Result<()> {
+    let (subject, message) = match status {
+        Status::Finished => (
+            "Completed",
+            "The decellularization run has completed as scheduled.",
+        ),
+        Status::Aborted => (
+            "Aborted",
+            "The decellularization run has been aborted manually.",
+        ),
+        Status::Custom { subject, message } => (subject, message),
+    };
+    mail(to, subject, message)
+}
+
 /// Send an email to the specified recipients.
 // Thanks to BurntSushi.
 pub fn mail(
