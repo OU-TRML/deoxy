@@ -8,6 +8,9 @@ pub struct Config {
     pub pump: PumpConfig,
     /// The motor configurations.
     pub motors: Vec<MotorConfig>,
+    /// The administrative users of the machine.
+    #[cfg_attr(feature = "use_serde", serde(default))]
+    pub admins: Vec<String>,
 }
 
 /// Specifies a single motor.
