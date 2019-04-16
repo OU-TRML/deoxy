@@ -22,7 +22,9 @@
 pub type MotorId = usize;
 
 mod program;
-pub use self::program::{Action, Program, Protocol, Step, ValidateError as ValidateProtocolError};
+pub use self::program::{
+    Action, Notification, Program, Protocol, Step, ValidateError as ValidateProtocolError,
+};
 
 #[cfg(feature = "use_serde")]
 #[cfg_attr(feature = "use_serde", macro_use)]
