@@ -28,6 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             invert: false,
         },
         motors: vec![motor!(4), motor!(27), motor!(21), motor!(13)],
+        admins: vec![],
     };
     let proto = Protocol {
         steps: vec![
