@@ -34,6 +34,7 @@ pub mod actix {
 
 mod comm;
 mod config;
+pub mod mail;
 mod motor;
 pub(crate) mod pin;
 mod pump;
