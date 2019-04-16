@@ -38,7 +38,11 @@ fn main() {
         label: None,
     };
     let motors = vec![motor1, motor2, motor3, motor4];
-    let config = Config { motors, pump };
+    let config = Config {
+        motors,
+        pump,
+        admins: vec![],
+    };
 
     let step1 = Step::Perfuse(0, Some(Duration::new(5, 0)));
     let step2 = Step::Perfuse(1, None);
