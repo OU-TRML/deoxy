@@ -290,7 +290,7 @@ impl Coordinator {
                             addresses.pump.do_send(PumpMessage::Drain);
                         }
                         context.run_later(
-                            *DURATION + Duration::from_millis(500),
+                            *DURATION + Duration::new(5, 0),
                             |coord, context| {
                                 if let Some(ref addresses) = coord.addresses {
                                     addresses.pump.do_send(PumpMessage::Stop);
