@@ -4,7 +4,7 @@ use std::time::Duration;
 use crate::MotorId;
 
 /// Represents an error encountered while validating a protocol.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase"))]
 pub enum ValidateError {
@@ -16,16 +16,28 @@ pub enum ValidateError {
     ZeroDuration,
 }
 
+/// Encodes a notification to users.
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Notification {
+    /// The subject of the notification.
+    pub subject: String,
+    /// The body of the notification.
+    pub message: String,
+}
+
 /// Represents a high-level step to be taken in a protocol.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase"))]
 pub enum Step {
     /// The specified motor should fully perfuse the tissue for the given duration (or until
     /// otherwise instructed if `None`).
-    ///
-    /// Currently, perfusion is the only valid action, but this may change in the future.
     Perfuse(MotorId, Option<Duration>),
+    /// The system should fully perfuse the tissue with the given solution, prompt the user with
+    /// the given message, await acknowledgement, wait for the specified duration, and then notify
+    /// the user again.
+    PerfusePrompt(MotorId, Notification, Duration, Notification),
 }
 
 /// A high-level description of a series of actions to be taken.
@@ -53,13 +65,14 @@ impl Protocol {
     /// All protocols should end with a perfusion (in the final solution, usually water) for an
     /// unspecified duration (i.e. a bath). If this is not the case, something's wrong with the
     /// protocol and we should refuse to run it.
-    ///
-    /// Currently, the last step is the only checked step.
     pub fn validate(&self) -> Result<(), ValidateError> {
         let is_zero_perfusion = |step: &Step| {
-            let Step::Perfuse(_, duration) = step;
-            if let Some(duration) = *duration {
-                duration == Duration::new(0, 0)
+            if let Step::Perfuse(_, duration) = step {
+                if let Some(duration) = *duration {
+                    duration == Duration::new(0, 0)
+                } else {
+                    false
+                }
             } else {
                 false
             }
@@ -72,9 +85,10 @@ impl Protocol {
                     if duration.is_none() {
                         Ok(())
                     } else {
-                        Err(ValidateError::Last(*last))
+                        Err(ValidateError::Last(last.clone()))
                     }
                 }
+                Step::PerfusePrompt(_, _, _, _) => Err(ValidateError::Last(last.clone())),
             }
         } else {
             Err(ValidateError::Empty)
@@ -89,11 +103,23 @@ impl Protocol {
             .steps
             .iter()
             .flat_map(|step| {
-                let Step::Perfuse(motor, duration) = step;
                 let mut actions = vec![];
-                actions.push(Action::Perfuse(*motor));
-                actions.push(duration.map(Action::Sleep).unwrap_or(Action::Hail));
-                actions.push(Action::Drain);
+                match step {
+                    &Step::Perfuse(motor, duration) => {
+                        actions.push(Action::Perfuse(motor));
+                        actions.push(duration.map(Action::Sleep).unwrap_or(Action::Hail));
+                        actions.push(Action::Drain);
+                    }
+                    Step::PerfusePrompt(motor, begin, duration, end) => {
+                        actions.push(Action::Perfuse(*motor));
+                        actions.push(Action::Hail);
+                        actions.push(Action::Notify(begin.clone()));
+                        actions.push(Action::Sleep(*duration));
+                        actions.push(Action::Hail);
+                        actions.push(Action::Notify(end.clone()));
+                        actions.push(Action::Drain);
+                    }
+                }
                 actions.into_iter()
             })
             .collect::<Vec<_>>();
@@ -112,7 +138,7 @@ impl Protocol {
 }
 
 /// Represents a specific action to be run.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "use_serde", serde(rename_all = "lowercase"))]
 pub enum Action {
@@ -127,18 +153,22 @@ pub enum Action {
     Drain,
     /// Finalize the job and notify the user.
     Finish,
+    /// Notify the user.
+    Notify(Notification),
 }
 
 impl Action {
     /// Whether this action can be performed in isolation from the preceding steps.
     ///
     /// If true, the coordinator will stop *before* this step when stopping early.
-    pub fn is_disjoint(self) -> bool {
+    pub fn is_disjoint(&self) -> bool {
         match self {
             // These actions come after perfusing, so we can stop after the prior step if need be.
             Action::Sleep(_) | Action::Hail | Action::Finish | Action::Drain => true,
             // Don't stop before perfusing (the sample should not be dry when we're done)
             Action::Perfuse(_) => false,
+            // Don't stop without notifying
+            Action::Notify(_) => false,
         }
     }
 }

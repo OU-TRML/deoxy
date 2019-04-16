@@ -252,7 +252,7 @@ impl Coordinator {
                 let action = self.state.remaining.remove(0);
                 // Make sure to message something that will call advance again later!
                 // Usually this will be try_advance.
-                match action {
+                match action.clone() {
                     Action::Perfuse(buffer) => {
                         let buffer = buffer + 1; // Motor 0 is waste
                         addresses[0].do_send(MotorMessage::Shut);
@@ -292,16 +292,13 @@ impl Coordinator {
                             addresses[0].do_send(MotorMessage::Close);
                             addresses.pump.do_send(PumpMessage::Drain);
                         }
-                        context.run_later(
-                            *DURATION + Duration::new(5, 0),
-                            |coord, context| {
-                                if let Some(ref addresses) = coord.addresses {
-                                    addresses.pump.do_send(PumpMessage::Stop);
-                                    addresses[0].do_send(MotorMessage::Shut);
-                                    coord.try_advance(context);
-                                }
-                            },
-                        );
+                        context.run_later(*DURATION + Duration::new(5, 0), |coord, context| {
+                            if let Some(ref addresses) = coord.addresses {
+                                addresses.pump.do_send(PumpMessage::Stop);
+                                addresses[0].do_send(MotorMessage::Shut);
+                                coord.try_advance(context);
+                            }
+                        });
                     }
                     Action::Finish => {
                         if let Some(addresses) = &self.addresses {
@@ -322,15 +319,19 @@ impl Coordinator {
                         // TODO: Handle error
                         let _ = mail::notify(&self.admins, mail::Status::Finished);
                     }
+                    Action::Notify(msg) => {
+                        // TODO: Handle error
+                        let _ = mail::mail(&self.admins, msg.subject, msg.message);
+                    }
                 }
-                self.state.completed.push(action);
+                self.state.completed.push(action.clone());
                 self.state.current = Some(action);
             }
         } else {
             self.state.status = State::Stopped { early: false };
             self.state.current = None;
         }
-        Ok(self.state.current)
+        Ok(self.state.current.clone())
     }
     /// Clears the remaining program queue after the next perfusion.
     fn clear(&mut self) -> Result<()> {
