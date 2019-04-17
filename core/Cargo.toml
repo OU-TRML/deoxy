@@ -1,6 +1,6 @@
 [package]
 name = "deoxy-core"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Alex Hamilton <alex.hamilton@ou.edu>"]
 edition = "2018"
 
