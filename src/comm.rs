@@ -402,6 +402,11 @@ impl Coordinator {
     ) -> Result<()> {
         let program = protocol.as_program()?;
         if self.is_stopped() {
+            if let Some(ref addresses) = self.addresses {
+                for addr in addresses.motors.iter().skip(1) {
+                    addr.do_send(MotorMessage::Close);
+                }
+            }
             let id = label.unwrap_or_else(Uuid::new_v4);
             self.state.program = Some(program.clone());
             self.state.remaining = program.into();
@@ -446,10 +451,6 @@ impl Actor for Coordinator {
                 .motors
                 .into_iter()
                 .map(Actor::start)
-                .map(|addr| {
-                    addr.do_send(MotorMessage::Close);
-                    addr
-                })
                 .collect::<Vec<_>>();
             let pump = devices.pump.start();
             let addresses = Addresses {
