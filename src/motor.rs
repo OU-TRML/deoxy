@@ -148,7 +148,10 @@ impl Handle<Message> for Motor {
             Message::Open => self.open().unwrap(),
             Message::Close => self.close().unwrap(),
             Message::Shut => self.shut().unwrap(),
-            Message::Stop => self.set_pulse_width(Duration::new(0, 0)).unwrap(),
+            Message::Stop => {
+                log::trace!("Stopping motor motion.");
+                self.set_pulse_width(Duration::new(0, 0)).unwrap()
+            }
         }
     }
 }
