@@ -446,6 +446,10 @@ impl Actor for Coordinator {
                 .motors
                 .into_iter()
                 .map(Actor::start)
+                .map(|addr| {
+                    addr.do_send(MotorMessage::Close);
+                    addr
+                })
                 .collect::<Vec<_>>();
             let pump = devices.pump.start();
             let addresses = Addresses {
