@@ -377,12 +377,7 @@ impl Coordinator {
     }
     /// Clears the remaining program queue after the next perfusion.
     fn clear(&mut self) -> Result<()> {
-        if let Some(index) = self
-            .state
-            .remaining
-            .iter()
-            .position(Action::is_disjoint)
-        {
+        if let Some(index) = self.state.remaining.iter().position(Action::is_disjoint) {
             // Vec::truncate keeps n elements, but we don't want to keep the element at index.
             self.state.remaining.truncate(index);
         }
