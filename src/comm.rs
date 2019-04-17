@@ -220,10 +220,79 @@ impl Coordinator {
     pub fn status(&self) -> State {
         self.state.status
     }
-    /// Closes all valves.
-    fn close_all(&self) {
-        for addr in self.addresses.iter().flat_map(|a| &a.motors) {
-            addr.do_send(MotorMessage::Close);
+    /// Closes all valves, shutting the waste valve.
+    fn close_all(&self, context: &mut CoordContext) {
+        if let Some(ref addresses) = self.addresses {
+            addresses[0].do_send(MotorMessage::Shut);
+            for addr in addresses.motors.iter().skip(1) {
+                addr.do_send(MotorMessage::Close);
+            }
+        }
+        context.run_later(Duration::new(5, 0), move |coord, _| {
+            if let Some(ref addresses) = coord.addresses {
+                for addr in &addresses.motors {
+                    addr.do_send(MotorMessage::Stop);
+                }
+            }
+        });
+    }
+    fn _close(&self, index: usize, context: &mut CoordContext) {
+        if let Some(ref addresses) = self.addresses {
+            addresses[index].do_send(MotorMessage::Close);
+            context.run_later(Duration::new(5, 0), move |coord, _| {
+                if let Some(ref addresses) = coord.addresses {
+                    addresses[index].do_send(MotorMessage::Stop);
+                }
+            });
+        }
+    }
+    fn close(&self, valve: usize, context: &mut CoordContext) {
+        let index = valve + 1; // Valve 0 is waste
+        self._close(index, context);
+    }
+    fn _open(&self, index: usize, context: &mut CoordContext) {
+        if let Some(ref addresses) = self.addresses {
+            addresses[index].do_send(MotorMessage::Open);
+            context.run_later(Duration::new(5, 0), move |coord, _| {
+                if let Some(ref addresses) = coord.addresses {
+                    addresses[index].do_send(MotorMessage::Stop);
+                }
+            });
+        }
+    }
+    fn open(&self, valve: usize, context: &mut CoordContext) {
+        let index = valve + 1; // Valve 0 is waste
+        self._open(index, context);
+    }
+    fn shut_waste(&self, context: &mut CoordContext) {
+        if let Some(ref addresses) = self.addresses {
+            addresses[0].do_send(MotorMessage::Shut);
+            context.run_later(Duration::new(5, 0), move |coord, _| {
+                if let Some(ref addresses) = coord.addresses {
+                    addresses[0].do_send(MotorMessage::Stop);
+                }
+            });
+        }
+    }
+    fn open_waste(&self, context: &mut CoordContext) {
+        self._open(0, context);
+    }
+    fn close_waste(&self, context: &mut CoordContext) {
+        self._open(0, context);
+    }
+    fn perfuse(&self) {
+        if let Some(ref addresses) = self.addresses {
+            addresses.pump.do_send(PumpMessage::Perfuse);
+        }
+    }
+    fn drain(&self) {
+        if let Some(ref addresses) = self.addresses {
+            addresses.pump.do_send(PumpMessage::Drain);
+        }
+    }
+    fn stop_pump(&self) {
+        if let Some(ref addresses) = self.addresses {
+            addresses.pump.do_send(PumpMessage::Stop);
         }
     }
     /// Attempts to run the next step of the program, aborting and cleaning up on failure.
@@ -247,80 +316,57 @@ impl Coordinator {
     /// Moves to the next step of the program, returning the new current action.
     fn advance(&mut self, context: &mut CoordContext) -> Result<Option<Action>> {
         if !self.state.remaining.is_empty() {
-            if let Some(ref addresses) = self.addresses {
-                self.state.status = State::Running;
-                let action = self.state.remaining.remove(0);
-                // Make sure to message something that will call advance again later!
-                // Usually this will be try_advance.
-                match action.clone() {
-                    Action::Perfuse(buffer) => {
-                        let buffer = buffer + 1; // Motor 0 is waste
-                        addresses[0].do_send(MotorMessage::Shut);
-                        addresses[buffer].do_send(MotorMessage::Open);
-                        addresses.pump.do_send(PumpMessage::Perfuse);
-                        context.run_later(*DURATION, move |coord, context| {
-                            if let Some(ref addresses) = coord.addresses {
-                                addresses[buffer].do_send(MotorMessage::Close);
-                                addresses[0].do_send(MotorMessage::Open);
-                            }
-                            // Clear the line for five seconds
-                            context.run_later(Duration::new(5, 0), move |coord, context| {
-                                if let Some(ref addresses) = coord.addresses {
-                                    addresses.pump.do_send(PumpMessage::Stop);
-                                    addresses[0].do_send(MotorMessage::Close);
-                                    coord.try_advance(context);
-                                }
-                            });
+            self.state.status = State::Running;
+            let action = self.state.remaining.remove(0);
+            // Make sure to message something that will call advance again later!
+            // Usually this will be try_advance.
+            match action.clone() {
+                Action::Perfuse(buffer) => {
+                    self.shut_waste(context);
+                    self.open(buffer, context);
+                    self.perfuse();
+                    context.run_later(*DURATION, move |coord, context| {
+                        coord.close(buffer, context);
+                        coord.open_waste(context);
+                        // Clear the line for five seconds
+                        context.run_later(Duration::new(5, 0), move |coord, context| {
+                            coord.stop_pump();
+                            coord.close_waste(context);
+                            coord.try_advance(context);
                         });
-                    }
-                    Action::Sleep(duration) => {
-                        context.run_later(duration, Self::try_advance);
-                    }
-                    Action::Hail => {
-                        self.state.status = State::Waiting;
-                        // TODO: Publish for other actions as well
-                        self.publish(StatusMessage::Paused, context);
-                    }
-                    Action::Drain => {
-                        if let Some(ref addresses) = self.addresses {
-                            addresses[0].do_send(MotorMessage::Close);
-                            addresses.pump.do_send(PumpMessage::Drain);
-                        }
-                        context.run_later(*DURATION + Duration::new(5, 0), |coord, context| {
-                            if let Some(ref addresses) = coord.addresses {
-                                addresses.pump.do_send(PumpMessage::Stop);
-                                addresses[0].do_send(MotorMessage::Shut);
-                                coord.try_advance(context);
-                            }
-                        });
-                    }
-                    Action::Finish => {
-                        if let Some(addresses) = &self.addresses {
-                            addresses.pump.do_send(PumpMessage::Stop);
-                            addresses[0].do_send(MotorMessage::Shut);
-                            for motor in addresses.motors.iter().skip(1) {
-                                motor.do_send(MotorMessage::Close);
-                            }
-                            // Stop signaling the motors after five seconds
-                            context.run_later(Duration::new(5, 0), move |coord, _| {
-                                if let Some(ref addresses) = coord.addresses {
-                                    for motor in addresses.motors.iter() {
-                                        motor.do_send(MotorMessage::Stop);
-                                    }
-                                }
-                            });
-                        }
-                        // TODO: Handle error
-                        let _ = mail::notify(&self.admins, mail::Status::Finished);
-                    }
-                    Action::Notify(msg) => {
-                        // TODO: Handle error
-                        let _ = mail::mail(&self.admins, msg.subject, msg.message);
-                    }
+                    });
                 }
-                self.state.completed.push(action.clone());
-                self.state.current = Some(action);
+                Action::Sleep(duration) => {
+                    context.run_later(duration, Self::try_advance);
+                }
+                Action::Hail => {
+                    self.state.status = State::Waiting;
+                    // TODO: Publish for other actions as well
+                    self.publish(StatusMessage::Paused, context);
+                }
+                Action::Drain => {
+                    self.close_waste(context);
+                    self.drain();
+                    context.run_later(*DURATION + Duration::new(5, 0), |coord, context| {
+                        coord.stop_pump();
+                        coord.shut_waste(context);
+                        coord.try_advance(context);
+                    });
+                }
+                Action::Finish => {
+                    self.stop_pump();
+                    self.close_all(context);
+                    // TODO: Handle error
+                    let _ = mail::notify(&self.admins, mail::Status::Finished);
+                    // TODO: Update coordinator state
+                }
+                Action::Notify(msg) => {
+                    // TODO: Handle error
+                    let _ = mail::mail(&self.admins, msg.subject, msg.message);
+                }
             }
+            self.state.completed.push(action.clone());
+            self.state.current = Some(action);
         } else {
             self.state.status = State::Stopped { early: false };
             self.state.current = None;
@@ -375,10 +421,8 @@ impl Coordinator {
     }
     /// Abort the program no matter where we are.
     fn hcf(&mut self) -> Result<()> {
-        if let Some(ref addresses) = self.addresses {
-            addresses.pump.do_send(PumpMessage::Stop);
-        }
-        self.close_all();
+        self.stop_pump();
+        // TODO: Reset motors?
         self.state.status = State::Stopped { early: true };
         // We didn't finish the last step, so remove it from the list
         self.state.completed.pop();
@@ -402,11 +446,7 @@ impl Coordinator {
     ) -> Result<()> {
         let program = protocol.as_program()?;
         if self.is_stopped() {
-            if let Some(ref addresses) = self.addresses {
-                for addr in addresses.motors.iter().skip(1) {
-                    addr.do_send(MotorMessage::Close);
-                }
-            }
+            self.close_all(context);
             let id = label.unwrap_or_else(Uuid::new_v4);
             self.state.program = Some(program.clone());
             self.state.remaining = program.into();
