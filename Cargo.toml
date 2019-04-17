@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 actix-web = "0.7.18"
 deoxy-core = { version = "0.2.0", path = "core" }
-deoxy-web = { version = "0.1.1", path = "web", optional = true }
+# deoxy-web = { version = "0.1.1", path = "web", optional = true }
 futures = "0.1.25"
 lazy_static = "1.2.0"
 log = "0.4.6"
@@ -25,7 +25,7 @@ stub = []
 use_serde = ["deoxy-core/use_serde", "serde_derive", "serde"]
 server = ["use_serde"]
 use_rppal = ["rppal"]
-web = ["deoxy-web"]
+# web = ["deoxy-web"]
 
 
 [badges]
