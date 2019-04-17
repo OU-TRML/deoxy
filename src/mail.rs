@@ -54,8 +54,7 @@ pub fn mail(
             &mut buf,
             "\
 Subject: {subject}
-From: deoxy@hmltn.me
-",
+From: deoxy@hmltn.me",
             subject = subject.to_string()
         )?;
         for recipient in to {
@@ -63,6 +62,7 @@ From: deoxy@hmltn.me
         }
         writeln!(&mut buf)?;
         writeln!(&mut buf, "{}", message.to_string())?;
+        writeln!(&mut buf, ".")?;
     }
     let status = child.wait()?;
     if status.success() {
