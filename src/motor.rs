@@ -57,10 +57,17 @@ impl PartialEq for Motor {
 impl Eq for Motor {}
 
 impl Motor {
+    #[cfg(not(feature = "custom_pwm"))]
     fn set_pulse_width(&mut self, width: Duration) -> Result<(), PinError> {
         self.pulse_width = width;
         self.pin.set_pwm(self.period, width)
     }
+    #[cfg(feature = "custom_pwm")]
+    fn set_pulse_width(&mut self, width: Duration) -> Result<(), PinError> {
+        self.pulse_width = width;
+        Ok(())
+    }
+
     /// Sets the motor's angle in degrees (relative to the closed position).
     ///
     /// ## Panics
@@ -139,6 +146,16 @@ impl Motor {
 
 impl Actor for Motor {
     type Context = Context<Self>;
+    #[cfg(feature = "custom_pwm")]
+    fn started(&mut self, context: &mut Self::Context) {
+        context.run_interval(self.period, |motor, context| {
+            let _ = motor.pin.set_high();
+            // TODO: Adjust time
+            context.run_later(motor.pulse_width, |motor, _| {
+                let _ = motor.pin.set_low();
+            });
+        });
+    }
 }
 
 impl Handle<Message> for Motor {

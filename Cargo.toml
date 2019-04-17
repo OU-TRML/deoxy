@@ -25,6 +25,7 @@ stub = []
 use_serde = ["deoxy-core/use_serde", "serde_derive", "serde"]
 server = ["use_serde"]
 use_rppal = ["rppal"]
+custom_pwm = []
 # web = ["deoxy-web"]
 
 
