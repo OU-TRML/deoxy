@@ -361,6 +361,7 @@ impl Coordinator {
                     // TODO: Update coordinator state
                 }
                 Action::Notify(msg) => {
+                    log::trace!("Notifying user (subject: {}).", msg.subject);
                     // TODO: Handle error
                     let _ = mail::mail(&self.admins, msg.subject, msg.message);
                     self.try_advance(context);

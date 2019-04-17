@@ -88,19 +88,19 @@ impl Motor {
     ///
     /// Fluid will flow through the valve, but not from the associated buffer.
     pub fn close(&mut self) -> Result<(), PinError> {
-        log::trace!("Closing motor.");
+        log::trace!("Closing motor on pin {}.", self.pin.number);
         self.set_angle(90)
     }
     /// Sets the motor to the shut position, where no fluid will flow through it.
     pub fn shut(&mut self) -> Result<(), PinError> {
-        log::trace!("Shutting motor.");
+        log::trace!("Shutting motor on pin {}.", self.pin.number);
         self.set_angle(180)
     }
     /// Sets the motor to the open position (angle of 0º).
     ///
     /// Fluid from the associated buffer will flow through the valve.
     pub fn open(&mut self) -> Result<(), PinError> {
-        log::trace!("Opening motor.");
+        log::trace!("Opening motor on pin {}.", self.pin.number);
         self.set_angle(0)
     }
     ///
