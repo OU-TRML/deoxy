@@ -363,6 +363,7 @@ impl Coordinator {
                 Action::Notify(msg) => {
                     // TODO: Handle error
                     let _ = mail::mail(&self.admins, msg.subject, msg.message);
+                    self.try_advance(context);
                 }
             }
             self.state.completed.push(action.clone());
