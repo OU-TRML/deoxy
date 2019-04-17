@@ -278,7 +278,7 @@ impl Coordinator {
         self._open(0, context);
     }
     fn close_waste(&self, context: &mut CoordContext) {
-        self._open(0, context);
+        self._close(0, context);
     }
     fn perfuse(&self) {
         if let Some(ref addresses) = self.addresses {
