@@ -443,6 +443,7 @@ impl Coordinator {
     ) -> Result<()> {
         let program = protocol.as_program()?;
         if self.is_stopped() {
+            self.stop_pump();
             self.close_all(context);
             context.run_later(Duration::new(10, 0), move |coord, context| {
                 let id = label.unwrap_or_else(Uuid::new_v4);
