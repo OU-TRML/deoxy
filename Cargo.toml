@@ -3,7 +3,7 @@ name = "deoxy"
 version = "0.2.0"
 authors = ["Alex Hamilton <alex.hamilton@ou.edu>"]
 description = "A programmable, user-friendly buffer exchange system."
-license = "ISC"
+license = "GPL-3.0-or-later"
 edition = "2018"
 
 [dependencies]
