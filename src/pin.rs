@@ -41,7 +41,11 @@ mod gpio {
     }
     impl Pwm for OutputPin {
         fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<(), Error> {
-            self.set_pwm(period, pulse_width)?;
+            if pulse_width == Duration::new(0, 0) {
+                self.clear_pwm()?;
+            } else {
+                self.set_pwm(period, pulse_width)?;
+            }
             Ok(())
         }
     }
