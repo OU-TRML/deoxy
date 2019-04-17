@@ -638,12 +638,14 @@ pub mod tui {
             match &status.message {
                 StatusMessage::Paused => {
                     log::trace!("Prompting user to unpause.");
-                    use std::io::{stdin, stdout, BufRead, Write};
+                    use std::io::{stdin, stdout, BufRead, BufReader, Write};
+                    let stdin = stdin();
+                    let mut stdin = BufReader::new(stdin.lock());
                     print!("Coordinator paused. Press enter to continue when desired.");
                     let _ = stdout().lock().flush();
                     let mut s = String::new();
                     loop {
-                        if stdin().lock().read_line(&mut s).is_ok() {
+                        if stdin.read_line(&mut s).is_ok() {
                             break;
                         }
                     }
