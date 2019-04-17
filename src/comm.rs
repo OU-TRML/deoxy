@@ -267,7 +267,7 @@ impl Coordinator {
                             context.run_later(Duration::new(5, 0), move |coord, context| {
                                 if let Some(ref addresses) = coord.addresses {
                                     addresses.pump.do_send(PumpMessage::Stop);
-                                    addresses[0].do_send(MotorMessage::Open);
+                                    addresses[0].do_send(MotorMessage::Close);
                                     coord.try_advance(context);
                                 }
                             });
