@@ -449,15 +449,17 @@ impl Coordinator {
         let program = protocol.as_program()?;
         if self.is_stopped() {
             self.close_all(context);
-            let id = label.unwrap_or_else(Uuid::new_v4);
-            self.state.program = Some(program.clone());
-            self.state.remaining = program.into();
-            self.state.current = None;
-            self.state.buffer = None;
-            self.state.status = State::Running;
-            self.state.completed.clear();
-            self.state.uuid = Some(id);
-            self.advance(context)?;
+            context.run_later(Duration::new(5, 0), move |coord, context| {
+                let id = label.unwrap_or_else(Uuid::new_v4);
+                coord.state.program = Some(program.clone());
+                coord.state.remaining = program.into();
+                coord.state.current = None;
+                coord.state.buffer = None;
+                coord.state.status = State::Running;
+                coord.state.completed.clear();
+                coord.state.uuid = Some(id);
+                coord.advance(context).unwrap();
+            });
         }
         Ok(())
     }
