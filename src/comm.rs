@@ -381,7 +381,7 @@ impl Coordinator {
             .state
             .remaining
             .iter()
-            .position(|action| action.is_disjoint())
+            .position(Action::is_disjoint)
         {
             // Vec::truncate keeps n elements, but we don't want to keep the element at index.
             self.state.remaining.truncate(index);
