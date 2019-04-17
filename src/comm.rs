@@ -444,7 +444,7 @@ impl Coordinator {
         let program = protocol.as_program()?;
         if self.is_stopped() {
             self.close_all(context);
-            context.run_later(Duration::new(5, 0), move |coord, context| {
+            context.run_later(Duration::new(3, 0), move |coord, context| {
                 let id = label.unwrap_or_else(Uuid::new_v4);
                 coord.state.program = Some(program.clone());
                 coord.state.remaining = program.into();
