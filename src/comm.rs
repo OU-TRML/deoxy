@@ -16,7 +16,7 @@ use std::{fmt, ops::Index, time::Duration};
 
 lazy_static! {
     static ref VOLUME: Volume = Volume::new::<milliliter>(500.0);
-    static ref RATE: VolumeRate = VolumeRate::new::<milliliter_per_second>(3.5);
+    static ref RATE: VolumeRate = VolumeRate::new::<milliliter_per_second>(5.0);
     static ref TIME: Time = *VOLUME / *RATE;
     static ref DURATION: Duration = {
         let secs = TIME.get::<second>();
