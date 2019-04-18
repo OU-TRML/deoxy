@@ -44,6 +44,7 @@ mod gpio {
             if pulse_width == Duration::new(0, 0) {
                 self.clear_pwm()?;
             } else {
+                log::trace!("Setting output pin {} pulse width to {:?}", self.number, pulse_width);
                 self.set_pwm(period, pulse_width)?;
             }
             Ok(())
