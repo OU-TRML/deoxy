@@ -29,7 +29,7 @@ use_rppal = ["rppal"]
 
 
 [badges]
-travis-ci = { repository = "aehmlo/deoxy", branch = "master" }
+travis-ci = { repository = "Aehmlo/deoxy", branch = "master" }
 maintenance = { status = "actively-developed" }
 
 [workspace]
