@@ -1,6 +1,6 @@
 [package]
 name = "deoxy"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Alex Hamilton <alex.hamilton@ou.edu>"]
 description = "A programmable, user-friendly buffer exchange system."
 license = "GPL-3.0-or-later"
@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 actix-web = "0.7.18"
-deoxy-core = { version = "0.2.1", path = "core" }
+deoxy-core = { version = "0.2.2", path = "core" }
 # deoxy-web = { version = "0.1.1", path = "web", optional = true }
 futures = "0.1.25"
 lazy_static = "1.2.0"

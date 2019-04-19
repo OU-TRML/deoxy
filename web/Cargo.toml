@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 yew = "0.6.0"
 uom = "0.22.1"
-deoxy-core = { version = "0.2.1", path = "../core" }
+deoxy-core = { version = "0.2.2", path = "../core" }
