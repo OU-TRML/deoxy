@@ -164,11 +164,11 @@ impl Action {
     pub fn is_disjoint(&self) -> bool {
         match self {
             // These actions come after perfusing, so we can stop after the prior step if need be.
-            Action::Sleep(_) | Action::Hail | Action::Finish | Action::Drain => true,
+            Self::Sleep(_) | Self::Hail | Self::Finish | Self::Drain => true,
             // Don't stop before perfusing (the sample should not be dry when we're done)
-            Action::Perfuse(_) => false,
+            Self::Perfuse(_) => false,
             // Don't stop without notifying
-            Action::Notify(_) => false,
+            Self::Notify(_) => false,
         }
     }
 }

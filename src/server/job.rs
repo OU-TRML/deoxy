@@ -36,37 +36,37 @@ pub enum Error {
 
 impl From<crate::comm::Error> for Error {
     fn from(err: crate::comm::Error) -> Self {
-        Error::Coordinator(err)
+        Self::Coordinator(err)
     }
 }
 
 impl From<actix_web::error::JsonPayloadError> for Error {
     fn from(err: actix_web::error::JsonPayloadError) -> Self {
-        Error::Json(err)
+        Self::Json(err)
     }
 }
 
 impl From<actix_web::actix::MailboxError> for Error {
     fn from(err: actix_web::actix::MailboxError) -> Self {
-        Error::Mailbox(err)
+        Self::Mailbox(err)
     }
 }
 
 impl From<actix_web::Error> for Error {
     fn from(err: actix_web::Error) -> Self {
-        Error::ActixWeb(err)
+        Self::ActixWeb(err)
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Coordinator(_e) => unimplemented!(),
-            Error::Json(e) => e.fmt(f),
-            Error::Mailbox(e) => e.fmt(f),
-            Error::InvalidUuid => write!(f, "Invalid UUID"),
-            Error::IncorrectUuid => write!(f, "Specified job is no longer active."),
-            Error::ActixWeb(e) => e.fmt(f),
+            Self::Coordinator(_e) => unimplemented!(),
+            Self::Json(e) => e.fmt(f),
+            Self::Mailbox(e) => e.fmt(f),
+            Self::InvalidUuid => write!(f, "Invalid UUID"),
+            Self::IncorrectUuid => write!(f, "Specified job is no longer active."),
+            Self::ActixWeb(e) => e.fmt(f),
         }
     }
 }
@@ -104,7 +104,7 @@ pub fn status(req: HttpRequest<AppState>) -> Json<Option<Job>> {
 
 /// Creates and starts a new job if the system is ready.
 #[allow(clippy::needless_pass_by_value)]
-pub fn start(req: HttpRequest<AppState>) -> Box<Future<Item = HttpResponse, Error = Error>> {
+pub fn start(req: HttpRequest<AppState>) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     req.json()
         .from_err()
         .and_then(move |proto: Protocol| {
@@ -170,7 +170,7 @@ fn message_uuid(
     message: Message,
     uuid: UUID,
     req: HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = Error>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     let state = &req.state();
     (if uuid.is_current(&state) {
         let addr = &state.addr;
@@ -190,7 +190,7 @@ fn message_uuid(
 pub fn resume(
     uuid: UUID,
     req: HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = Error>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     message_uuid(Message::Continue, uuid, req)
 }
 
@@ -199,7 +199,7 @@ pub fn resume(
 pub fn halt(
     uuid: UUID,
     req: HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = Error>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     message_uuid(Message::Halt, uuid, req)
 }
 
@@ -210,7 +210,7 @@ pub fn halt(
 pub fn stop(
     uuid: UUID,
     req: HttpRequest<AppState>,
-) -> Box<Future<Item = HttpResponse, Error = Error>> {
+) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     let message = Message::Stop;
     message_uuid(message, uuid, req)
 }

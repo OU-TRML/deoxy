@@ -33,8 +33,8 @@ impl Not for Direction {
     type Output = Self;
     fn not(self) -> Self {
         match self {
-            Direction::Forward => Direction::Backward,
-            Direction::Backward => Direction::Forward,
+            Self::Forward => Self::Backward,
+            Self::Backward => Self::Forward,
         }
     }
 }

@@ -58,13 +58,13 @@ pub enum Error {
 
 impl From<ValidateProtocolError> for Error {
     fn from(err: ValidateProtocolError) -> Self {
-        Error::ProtocolConversion(err)
+        Self::ProtocolConversion(err)
     }
 }
 
 impl From<PinError> for Error {
     fn from(err: PinError) -> Self {
-        Error::Pin(err)
+        Self::Pin(err)
     }
 }
 
@@ -123,7 +123,7 @@ pub enum State {
 
 impl Default for State {
     fn default() -> Self {
-        State::Stopped { early: false }
+        Self::Stopped { early: false }
     }
 }
 
@@ -666,5 +666,4 @@ pub mod tui {
             }
         }
     }
-
 }

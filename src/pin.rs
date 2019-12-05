@@ -94,7 +94,7 @@ pub enum Error {
 
 impl From<IoError> for Error {
     fn from(err: IoError) -> Self {
-        Error::Io(err)
+        Self::Io(err)
     }
 }
 
@@ -104,11 +104,11 @@ use rppal::gpio::Error as RppalError;
 impl From<RppalError> for Error {
     fn from(err: RppalError) -> Self {
         match err {
-            RppalError::Io(err) => Error::Io(err),
-            RppalError::UnknownModel => Error::Model,
-            RppalError::PinNotAvailable(pin) => Error::Unavailable(pin),
-            RppalError::PermissionDenied(path) => Error::Permission(path),
-            RppalError::ThreadPanic => Error::Panic,
+            RppalError::Io(err) => Self::Io(err),
+            RppalError::UnknownModel => Self::Model,
+            RppalError::PinNotAvailable(pin) => Self::Unavailable(pin),
+            RppalError::PermissionDenied(path) => Self::Permission(path),
+            RppalError::ThreadPanic => Self::Panic,
         }
     }
 }
@@ -116,11 +116,11 @@ impl From<RppalError> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Io(err) => err.fmt(f),
-            Error::Model => write!(f, "Unknown Pi model/SoC"),
-            Error::Unavailable(pin) => write!(f, "Pin {} unavailable (in use or nonexistent)", pin),
-            Error::Permission(path) => write!(f, "Permission denied when accessing path {}", path),
-            Error::Panic => write!(f, "Thread panicked."),
+            Self::Io(err) => err.fmt(f),
+            Self::Model => write!(f, "Unknown Pi model/SoC"),
+            Self::Unavailable(pin) => write!(f, "Pin {} unavailable (in use or nonexistent)", pin),
+            Self::Permission(path) => write!(f, "Permission denied when accessing path {}", path),
+            Self::Panic => write!(f, "Thread panicked."),
         }
     }
 }
