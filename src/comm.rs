@@ -24,6 +24,8 @@ lazy_static! {
         let secs = secs.floor() as u64;
         Duration::new(secs, nanos)
     };
+    // Motor delay after motor motion before the pump starts
+    static ref PUMP_DELAY: Duration = Duration::new(2, 0);
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -324,15 +326,17 @@ impl Coordinator {
                 Action::Perfuse(buffer) => {
                     self.shut_waste(context);
                     self.open(buffer, context);
-                    self.perfuse();
-                    context.run_later(*DURATION, move |coord, context| {
-                        coord.close(buffer, context);
-                        coord.open_waste(context);
-                        // Clear the line for ten seconds
-                        context.run_later(Duration::new(10, 0), move |coord, context| {
-                            coord.stop_pump();
-                            coord.close_waste(context);
-                            coord.try_advance(context);
+                    context.run_later(*PUMP_DELAY, move |coord, context| {
+                        coord.perfuse();
+                        context.run_later(*DURATION, move |coord, context| {
+                            coord.close(buffer, context);
+                            coord.open_waste(context);
+                            // Clear the line for ten seconds
+                            context.run_later(Duration::new(10, 0), move |coord, context| {
+                                coord.stop_pump();
+                                coord.close_waste(context);
+                                coord.try_advance(context);
+                            });
                         });
                     });
                 }
@@ -346,11 +350,13 @@ impl Coordinator {
                 }
                 Action::Drain => {
                     self.close_waste(context);
-                    self.drain();
-                    context.run_later(*DURATION + Duration::new(5, 0), |coord, context| {
-                        coord.stop_pump();
-                        coord.shut_waste(context);
-                        coord.try_advance(context);
+                    context.run_later(*PUMP_DELAY, move |coord, context| {
+                        coord.drain();
+                        context.run_later(*DURATION + Duration::new(5, 0), |coord, context| {
+                            coord.stop_pump();
+                            coord.shut_waste(context);
+                            coord.try_advance(context);
+                        });
                     });
                 }
                 Action::Finish => {
