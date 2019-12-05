@@ -352,7 +352,7 @@ impl Coordinator {
                     self.close_waste(context);
                     context.run_later(*PUMP_DELAY, move |coord, context| {
                         coord.drain();
-                        context.run_later(*DURATION + Duration::new(5, 0), |coord, context| {
+                        context.run_later(*DURATION + Duration::new(30, 0), |coord, context| {
                             coord.stop_pump();
                             coord.shut_waste(context);
                             coord.try_advance(context);
