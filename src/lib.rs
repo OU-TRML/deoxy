@@ -32,6 +32,9 @@ pub mod actix {
     };
 }
 
+/// Re-export of `actix-web`.
+pub use actix_web;
+
 mod comm;
 mod config;
 pub mod mail;
